@@ -1,0 +1,9 @@
+README.md
+setup.py
+getvouch/__init__.py
+getvouch/main.py
+getvouch.egg-info/PKG-INFO
+getvouch.egg-info/SOURCES.txt
+getvouch.egg-info/dependency_links.txt
+getvouch.egg-info/entry_points.txt
+getvouch.egg-info/top_level.txt
