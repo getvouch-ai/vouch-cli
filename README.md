@@ -3,7 +3,7 @@
 > AI builds fast. It also builds with unlocked doors.  
 > GetVouch finds them before your users do.
 
-Built by a SOC analyst who spent 3 years watching these exact 
+Built by a Cybersecurity analyst who spent 3 years watching these exact 
 vulnerabilities get exploited in enterprise breaches.
 Now they're being baked into vibe-coded apps automatically.
 
@@ -83,7 +83,7 @@ Need help? → getvouch.ai
 Running GetVouch and want a human to review your results?
 
 I personally review vibe-coded apps for free right now.  
-SOC analyst background. Plain English findings. No jargon.
+Cybersecurity analyst background. Plain English findings. No jargon.
 
 → Open an Issue titled "Free Audit Request"  
 → Or find me on Reddit: u/CablePrestigious4523
