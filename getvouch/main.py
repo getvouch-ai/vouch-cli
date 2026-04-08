@@ -755,7 +755,7 @@ def run_vouch():
     ".git", "node_modules", "__pycache__",
     ".venv", "venv", "build", "dist",
     "getvouch-report.html"
-}
+    }
 
     secret_findings = []
     auth_findings = []
