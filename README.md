@@ -3,7 +3,7 @@
 > AI builds fast. It also builds with unlocked doors.
 > GetVouch finds them before your users do.
 
-Built by a SOC analyst who spent 3 years watching these 
+Built by a Cybersecurity analyst who spent 3 years watching these 
 exact vulnerabilities get exploited in enterprise breaches.
 Now they're being baked into vibe-coded apps automatically.
 
