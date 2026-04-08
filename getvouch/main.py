@@ -751,10 +751,11 @@ def run_vouch():
         ".php", ".rb", ".go", ".java", ".cs"
     )
     frontend_extensions = (".js", ".jsx", ".ts", ".tsx")
-    skip_folders = {
-        ".git", "node_modules", "__pycache__",
-        ".venv", "venv", "build", "dist"
-    }
+   skip_folders = {
+    ".git", "node_modules", "__pycache__",
+    ".venv", "venv", "build", "dist",
+    "getvouch-report.html"
+}
 
     secret_findings = []
     auth_findings = []
@@ -793,9 +794,10 @@ def run_vouch():
                                         "line": line_num,
                                         "snippet": line.strip()[:80]
                                     })
-                        for label, pattern in (
-                                sql_patterns.items()):
-                            if re.search(pattern, line):
+                         if not file.endswith(".py"):
+          for label, pattern in (
+                  sql_patterns.items()):
+              if re.search(pattern, line):
                                 sql_findings.append({
                                     "type": label,
                                     "file": file_path,
