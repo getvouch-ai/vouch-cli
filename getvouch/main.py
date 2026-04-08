@@ -295,7 +295,7 @@ def run_vouch():
     )
 
     report_path = "getvouch-report.html"
-    with open(report_path, "w") as f:
+    with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_html)
 
     print(f"✅ Report saved: {report_path}")
