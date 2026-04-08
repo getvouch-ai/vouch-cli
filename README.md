@@ -69,12 +69,19 @@ Need help? → getvouch.ai
 
 ---
 
-## Coming in v0.2.0
+## What GetVouch catches (v0.2.0)
 
-- Client-side auth detection
-- Missing rate limiting check  
-- SQL injection pattern scanner
-- HTML report output
+| Check | What it finds |
+|---|---|
+| 🔑 Secret Scanner | 10 key types — OpenAI, Stripe, AWS, GitHub and more |
+| 🔐 Auth Scanner | Client-side auth logic that users can bypass in DevTools |
+| 💉 SQL Scanner | Injection patterns in database queries |
+
+## Coming in v0.3.0
+
+- Missing rate limiting detection
+- .gitignore safety check
+- HTML report export
 
 ---
 
