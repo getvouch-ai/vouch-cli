@@ -69,19 +69,28 @@ Need help? → getvouch.ai
 
 ---
 
-## What GetVouch catches (v0.2.0)
+## What GetVouch catches (v0.3.0)
 
 | Check | What it finds |
 |---|---|
-| 🔑 Secret Scanner | 10 key types — OpenAI, Stripe, AWS, GitHub and more |
-| 🔐 Auth Scanner | Client-side auth logic that users can bypass in DevTools |
-| 💉 SQL Scanner | Injection patterns in database queries |
+| 🔑 Secrets | 10 key types — OpenAI, Stripe, AWS, GitHub and more |
+| 🔐 Auth | Client-side auth logic bypassable in DevTools |
+| 💉 SQL | Injection patterns in database queries |
+| 📄 Report | Full HTML report with Vibe Score saved locally |
 
-## Coming in v0.3.0
+## Run it
 
-- Missing rate limiting detection
+git clone https://github.com/getvouch-ai/vouch-cli.git
+cd vouch-cli
+python getvouch/main.py
+
+Open getvouch-report.html in your browser to see your results.
+
+## Coming in v0.4.0
+
 - .gitignore safety check
-- HTML report export
+- Missing rate limiting detection
+- Scan any folder path as argument
 
 ---
 
