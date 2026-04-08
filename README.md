@@ -107,4 +107,4 @@ Cybersecurity analyst background. Plain English findings. No jargon.
 ---
 
 *Built by Sufiyan — Cybersecurity Analyst turned founder.*  
-*getvouch.ai | v0.1.0*
+*getvouch.ai | v0.3.0*
