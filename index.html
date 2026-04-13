@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GetVouch — Find Security Holes in Your Vibe-Coded App</title>
+<meta name="description" content="GetVouch scans your AI-generated codebase for exposed API keys, auth bypasses, SQL injection, and 20+ more vulnerabilities in 60 seconds. Free, open source, runs locally.">
+<style>
+  :root {
+    --bg: #0a0f1a;
+    --bg2: #0d1424;
+    --bg3: #111827;
+    --bg4: #1a2235;
+    --accent: #00d4aa;
+    --accent-dim: rgba(0, 212, 170, 0.12);
+    --accent-glow: rgba(0, 212, 170, 0.3);
+    --text: #ffffff;
+    --text-muted: #8b95a8;
+    --text-dim: #4b5568;
+    --red: #ef4444;
+    --orange: #f97316;
+    --yellow: #eab308;
+    --border: rgba(255,255,255,0.07);
+    --border-accent: rgba(0, 212, 170, 0.25);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ── NAVBAR ─────────────────────────────────────────────── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(10, 15, 26, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #fff;
+  }
+  .nav-logo span { color: var(--accent); }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: #fff; }
+
+  .nav-cta {
+    background: var(--accent);
+    color: #0a0f1a !important;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .nav-cta:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .nav-hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .nav-hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+    transition: all 0.3s;
+  }
+
+  /* ── HERO ───────────────────────────────────────────────── */
+  .hero {
+    min-height: 100vh;
+    padding: 120px 40px 80px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent-dim);
+    border: 1px solid var(--border-accent);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .hero h1 {
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero h2 {
+    font-size: clamp(22px, 3vw, 36px);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  .hero-sub {
+    font-size: 16px;
+    color: var(--text-muted);
+    line-height: 1.75;
+    max-width: 480px;
+    margin-bottom: 36px;
+  }
+
+  .hero-buttons {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #0a0f1a;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 28px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+    white-space: nowrap;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 8px 24px var(--accent-glow); }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px 28px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+
+  /* ── TERMINAL ───────────────────────────────────────────── */
+  .terminal-wrap {
+    position: relative;
+  }
+  .terminal-glow {
+    position: absolute;
+    inset: -30px;
+    background: radial-gradient(ellipse at center, rgba(0, 212, 170, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .terminal {
+    background: #050a14;
+    border: 1px solid rgba(0, 212, 170, 0.2);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,170,0.05);
+    position: relative;
+  }
+
+  .terminal-bar {
+    background: #0d1424;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .terminal-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+  }
+  .terminal-dot:nth-child(1) { background: #ff5f57; }
+  .terminal-dot:nth-child(2) { background: #febc2e; }
+  .terminal-dot:nth-child(3) { background: #28c840; }
+  .terminal-title {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    margin-right: 36px;
+  }
+
+  .terminal-body {
+    padding: 20px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: 340px;
+    overflow: hidden;
+  }
+
+  .t-line {
+    display: block;
+    white-space: pre;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .t-line.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .t-white  { color: #e2e8f0; }
+  .t-accent { color: #00d4aa; }
+  .t-red    { color: #f87171; }
+  .t-orange { color: #fb923c; }
+  .t-yellow { color: #fbbf24; }
+  .t-dim    { color: #4b5568; }
+  .t-green  { color: #4ade80; }
+  .t-bold   { font-weight: 700; }
+
+  .cursor {
+    display: inline-block;
+    width: 8px; height: 14px;
+    background: var(--accent);
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* ── TRUST BAR ──────────────────────────────────────────── */
+  .trust-bar {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px;
+  }
+  .trust-bar-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .trust-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .trust-divider {
+    width: 1px; height: 28px;
+    background: var(--border);
+  }
+  .trust-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .trust-tool {
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+  .trust-tool:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── SECTIONS COMMON ────────────────────────────────────── */
+  section {
+    padding: 96px 40px;
+  }
+  .section-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: clamp(28px, 3.5vw, 44px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+  .section-sub {
+    font-size: 17px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-width: 580px;
+  }
+
+  /* ── CATCHES GRID ───────────────────────────────────────── */
+  #features { background: var(--bg); }
+
+  .catches-header {
+    margin-bottom: 48px;
+  }
+
+  .catches-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .catch-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .catch-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .catch-card:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  }
+  .catch-card:hover::before { opacity: 1; }
+
+  .catch-icon {
+    font-size: 28px;
+    margin-bottom: 14px;
+    line-height: 1;
+  }
+  .catch-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .catch-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin-bottom: 10px;
+    display: inline-block;
+  }
+  .catch-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* ── BREACH SECTION ─────────────────────────────────────── */
+  #breach {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .breach-box {
+    background: var(--bg3);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius);
+    padding: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .breach-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--red), #f97316);
+  }
+  .breach-quote-mark {
+    font-size: 80px;
+    line-height: 1;
+    color: rgba(239, 68, 68, 0.15);
+    font-family: Georgia, serif;
+    margin-bottom: -20px;
+  }
+  .breach-story {
+    font-size: clamp(17px, 2vw, 21px);
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.75;
+    margin-bottom: 32px;
+    position: relative;
+  }
+  .breach-story strong { color: var(--red); }
+
+  .breach-catch {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent-dim);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-sm);
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* ── HOW IT WORKS ───────────────────────────────────────── */
+  #how-it-works { background: var(--bg); }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 56px;
+    position: relative;
+  }
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 28px;
+    left: calc(16.67% + 20px);
+    right: calc(16.67% + 20px);
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent), transparent 50%, var(--accent));
+    opacity: 0.3;
+  }
+
+  .step {
+    padding: 0 32px;
+    text-align: center;
+  }
+  .step-num {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .step-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .step-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .step-code {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    text-align: left;
+    word-break: break-all;
+  }
+  .step-code .cmd-dollar { color: var(--text-muted); }
+
+  .local-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 48px;
+    padding: 14px 28px;
+    background: var(--accent-dim);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ── REPORT PREVIEW ─────────────────────────────────────── */
+  #report-preview {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .report-mockup {
+    background: #fff;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+    margin-top: 48px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .report-cover {
+    background: #0f172a;
+    padding: 40px;
+    color: #fff;
+  }
+  .report-cover-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 36px;
+  }
+  .report-logo {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .report-logo span { color: #60a5fa; }
+  .report-confidential {
+    font-size: 10px;
+    color: #64748b;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 1px solid #1e2d45;
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+  .report-score-block {
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .report-score-num {
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1;
+    color: #ef4444;
+    letter-spacing: -0.04em;
+  }
+  .report-score-denom {
+    font-size: 28px;
+    color: #475569;
+    margin-bottom: 10px;
+  }
+  .report-risk-badge {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border: 1px solid #991b1b;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .report-title {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 8px;
+  }
+
+  .report-body {
+    padding: 32px 40px;
+    background: #fff;
+  }
+  .report-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 16px;
+  }
+  .report-findings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .report-finding {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+  }
+  .report-finding.critical { border-left-color: #ef4444; }
+  .report-finding.high     { border-left-color: #f97316; }
+  .report-finding-sev {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .sev-critical { background: #fef2f2; color: #ef4444; }
+  .sev-high     { background: #fff7ed; color: #f97316; }
+  .report-finding-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+    flex: 1;
+  }
+  .report-finding-file {
+    font-size: 11px;
+    color: #6b7280;
+    font-family: monospace;
+  }
+
+  /* ── VS SECTION ─────────────────────────────────────────── */
+  #compare { background: var(--bg); }
+
+  .vs-table {
+    margin-top: 48px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .vs-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .vs-col-label {
+    padding: 16px 24px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .vs-col-label.theirs { color: var(--text-dim); }
+  .vs-col-label.ours   { color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 14px; }
+
+  .vs-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .vs-row:last-child { border-bottom: none; }
+  .vs-row:hover { background: rgba(255,255,255,0.02); }
+
+  .vs-cell {
+    padding: 16px 24px;
+    font-size: 14px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .vs-cell.ours {
+    color: var(--text);
+    font-weight: 600;
+    background: rgba(0, 212, 170, 0.04);
+  }
+  .vs-cell.theirs { color: var(--text-dim); }
+  .vs-checkmark { color: var(--accent); font-weight: 700; }
+  .vs-cross     { color: var(--text-dim); }
+
+  /* ── FINAL CTA ──────────────────────────────────────────── */
+  #cta {
+    background: linear-gradient(135deg, #0d1424 0%, #0a0f1a 100%);
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+  .cta-inner {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .cta-inner .section-title { margin-bottom: 24px; }
+  .cta-sub {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-top: 20px;
+    line-height: 1.6;
+  }
+  .cta-sub strong { color: var(--accent); }
+
+  /* ── FOOTER ─────────────────────────────────────────────── */
+  footer {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    padding: 40px;
+  }
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  .footer-brand {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .footer-brand span { color: var(--accent); }
+  .footer-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+  .footer-links a {
+    font-size: 13px;
+    color: var(--text-muted);
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--accent); }
+  .footer-right {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .footer-right::before {
+    content: '🔒';
+    font-size: 12px;
+  }
+
+  /* ── SCROLL ANIMATIONS ──────────────────────────────────── */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .fade-up.in-view {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── RESPONSIVE ─────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    nav { padding: 0 20px; }
+
+    .nav-links { display: none; }
+    .nav-links.open {
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 64px; left: 0; right: 0;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 20px;
+      gap: 16px;
+    }
+    .nav-links.open a { font-size: 16px; }
+    .nav-hamburger { display: flex; }
+
+    .hero {
+      grid-template-columns: 1fr;
+      padding: 100px 20px 60px;
+      gap: 48px;
+    }
+
+    .catches-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .steps {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    .steps::before { display: none; }
+    .step { padding: 0; text-align: left; display: flex; flex-direction: column; align-items: flex-start; }
+    .step-num { margin: 0 0 16px; }
+
+    .trust-bar { padding: 20px; }
+    .trust-divider { display: none; }
+
+    section { padding: 64px 20px; }
+
+    .breach-box { padding: 28px 24px; }
+
+    .vs-col-label, .vs-cell { padding: 12px 12px; font-size: 13px; }
+
+    .footer-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
+    footer { padding: 32px 20px; }
+
+    .report-body { padding: 24px; }
+    .report-cover { padding: 28px; }
+    .report-score-num { font-size: 52px; }
+  }
+
+  @media (max-width: 600px) {
+    .catches-grid { grid-template-columns: 1fr; }
+    .hero-buttons { flex-direction: column; }
+    .hero-buttons a { text-align: center; justify-content: center; }
+    .report-mockup { margin-top: 32px; }
+    .vs-table { font-size: 12px; }
+    .vs-col-label, .vs-cell { padding: 10px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── NAVBAR ────────────────────────────────────────────── -->
+<nav>
+  <a href="#" class="nav-logo">Get<span>Vouch</span></a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how-it-works">How it works</a></li>
+    <li><a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener">GitHub</a></li>
+    <li><a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener" class="nav-cta">Scan for free</a></li>
+  </ul>
+  <div class="nav-hamburger" id="hamburger" onclick="toggleNav()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-badge">Built by a Cybersecurity Analyst</div>
+    <h1>Your vibe-coded app has <em>security holes.</em></h1>
+    <h2>Find them in 60 seconds.</h2>
+    <p class="hero-sub">
+      I spent years hunting these exact vulnerabilities in enterprise breach reports.
+      Now AI tools are generating them automatically.
+      GetVouch finds them before your users do.
+    </p>
+    <div class="hero-buttons">
+      <a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener" class="btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        Scan for free — GitHub
+      </a>
+      <a href="#features" class="btn-secondary">
+        See what it catches
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <div class="terminal-wrap">
+    <div class="terminal-glow"></div>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-title">bash — getvouch</div>
+      </div>
+      <div class="terminal-body" id="terminalBody">
+        <span class="cursor" id="termCursor"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TRUST BAR ─────────────────────────────────────────── -->
+<div class="trust-bar">
+  <div class="trust-bar-inner">
+    <span class="trust-label">Catches vulnerabilities from</span>
+    <div class="trust-divider"></div>
+    <div class="trust-tools">
+      <span class="trust-tool">Cursor</span>
+      <span class="trust-tool">Lovable</span>
+      <span class="trust-tool">Replit</span>
+      <span class="trust-tool">Windsurf</span>
+      <span class="trust-tool">Claude Code</span>
+      <span class="trust-tool">v0</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── WHAT IT CATCHES ───────────────────────────────────── -->
+<section id="features">
+  <div class="section-inner">
+    <div class="catches-header fade-up">
+      <div class="section-label">Coverage</div>
+      <h2 class="section-title">What GetVouch catches</h2>
+      <p class="section-sub">25+ secret types. 9 vulnerability categories. Every pattern AI tools reliably introduce.</p>
+    </div>
+    <div class="catches-grid">
+      <div class="catch-card fade-up">
+        <div class="catch-icon">🔑</div>
+        <div class="catch-title">Exposed API Keys</div>
+        <div class="catch-badge">25 secret types</div>
+        <div class="catch-desc">OpenAI, Anthropic, Stripe, AWS, GitHub, Twilio, Firebase, Shopify, PayPal, SendGrid and more — hardcoded in your source.</div>
+      </div>
+      <div class="catch-card fade-up">
+        <div class="catch-icon">🛡️</div>
+        <div class="catch-title">Client-Side Auth Bypass</div>
+        <div class="catch-badge">CRITICAL</div>
+        <div class="catch-desc">isAdmin, isPaid, isSubscribed checks in JavaScript that any user can override with DevTools in two seconds.</div>
+      </div>
+      <div class="catch-card fade-up">
+        <div class="catch-icon">💉</div>
+        <div class="catch-title">SQL Injection Risks</div>
+        <div class="catch-badge">HIGH</div>
+        <div class="catch-desc">User-controlled strings concatenated directly into database queries — the most exploited class of web vulnerability.</div>
+      </div>
+      <div class="catch-card fade-up">
+        <div class="catch-icon">🌐</div>
+        <div class="catch-title">CORS Misconfiguration</div>
+        <div class="catch-badge">HIGH</div>
+        <div class="catch-desc">Wildcard origins that let any website make authenticated requests to your API on behalf of your logged-in users.</div>
+      </div>
+      <div class="catch-card fade-up">
+        <div class="catch-icon">📄</div>
+        <div class="catch-title">Env File Exposure</div>
+        <div class="catch-badge">CRITICAL</div>
+        <div class="catch-desc">.env files present but missing from .gitignore — one git push away from exposing every secret to the public.</div>
+      </div>
+      <div class="catch-card fade-up">
+        <div class="catch-icon">⚠️</div>
+        <div class="catch-title">Missing Input Validation</div>
+        <div class="catch-badge">HIGH</div>
+        <div class="catch-desc">User input from req.body or request.form hitting your logic without sanitization, enabling injection and manipulation.</div>
+      </div>
+      <div class="catch-card fade-up">
+        <div class="catch-icon">🔓</div>
+        <div class="catch-title">Insecure Object References</div>
+        <div class="catch-badge">HIGH</div>
+        <div class="catch-desc">findById and params.id patterns with no ownership check — users accessing and modifying other users' data.</div>
+      </div>
+      <div class="catch-card fade-up">
+        <div class="catch-icon">📦</div>
+        <div class="catch-title">Outdated Dependencies</div>
+        <div class="catch-badge">MEDIUM</div>
+        <div class="catch-desc">Known-vulnerable package versions in package.json that carry published CVEs with active exploits.</div>
+      </div>
+      <div class="catch-card fade-up">
+        <div class="catch-icon">🏠</div>
+        <div class="catch-title">Localhost URLs in Production</div>
+        <div class="catch-badge">MEDIUM</div>
+        <div class="catch-desc">Hardcoded localhost:3000 and 127.0.0.1 references that will fail silently in production with no error message.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── BREACH SECTION ────────────────────────────────────── -->
+<section id="breach">
+  <div class="section-inner">
+    <div class="breach-box fade-up">
+      <div class="breach-quote-mark">"</div>
+      <p class="breach-story">
+        In late 2025, a founder built a SaaS entirely with Cursor.
+        Within <strong>72 hours</strong>, users bypassed the paywall by changing one value
+        in their browser console. The AI had put all auth logic client-side —
+        a single <code style="background:rgba(239,68,68,0.1);color:#f87171;padding:2px 6px;border-radius:4px;font-size:0.9em;">isPaid === true</code> check in JavaScript.
+        Anyone who knew how to open DevTools could flip it to <code style="background:rgba(239,68,68,0.1);color:#f87171;padding:2px 6px;border-radius:4px;font-size:0.9em;">true</code>.
+        <strong>The company shut down.</strong>
+      </p>
+      <div class="breach-catch">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        GetVouch catches this pattern in 3 seconds.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ──────────────────────────────────────── -->
+<section id="how-it-works">
+  <div class="section-inner">
+    <div class="fade-up">
+      <div class="section-label">Get started</div>
+      <h2 class="section-title">Three commands. Done.</h2>
+      <p class="section-sub">No account. No signup. No sending your code anywhere.</p>
+    </div>
+    <div class="steps">
+      <div class="step fade-up">
+        <div class="step-num">1</div>
+        <div class="step-title">Clone the repo</div>
+        <p class="step-desc">Get GetVouch onto your machine in seconds.</p>
+        <div class="step-code"><span class="cmd-dollar">$ </span>git clone https://github.com/<br>&nbsp;&nbsp;getvouch-ai/vouch-cli</div>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num">2</div>
+        <div class="step-title">Run the scanner</div>
+        <p class="step-desc">Point it at any project folder.</p>
+        <div class="step-code"><span class="cmd-dollar">$ </span>python -m getvouch.main<br>&nbsp;&nbsp;/path/to/your/project</div>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num">3</div>
+        <div class="step-title">Open your report</div>
+        <p class="step-desc">Executive-grade HTML report with every finding, severity, and fix.</p>
+        <div class="step-code"><span class="cmd-dollar">$ </span>open getvouch-report.html</div>
+      </div>
+    </div>
+    <div class="local-badge fade-up">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Runs locally. Your code never leaves your machine.
+    </div>
+  </div>
+</section>
+
+<!-- ── REPORT PREVIEW ────────────────────────────────────── -->
+<section id="report-preview">
+  <div class="section-inner">
+    <div class="fade-up" style="text-align:center;">
+      <div class="section-label">Sample output</div>
+      <h2 class="section-title">The report you get</h2>
+      <p class="section-sub" style="margin:0 auto;">Executive-grade security assessment. Every finding with file, line number, and exact remediation steps.</p>
+    </div>
+    <div class="report-mockup fade-up">
+      <div class="report-cover">
+        <div class="report-cover-top">
+          <div>
+            <div class="report-logo">Get<span>Vouch</span></div>
+            <div style="font-size:10px;color:#64748b;margin-top:2px;letter-spacing:0.1em;">SECURITY ASSESSMENT v1.0</div>
+          </div>
+          <div class="report-confidential">CONFIDENTIAL</div>
+        </div>
+        <div class="report-score-block">
+          <div>
+            <div style="display:flex;align-items:baseline;gap:4px;">
+              <span class="report-score-num">45</span>
+              <span class="report-score-denom">/100</span>
+            </div>
+            <div class="report-title">Security Score — my-saas-app</div>
+          </div>
+          <div>
+            <div class="report-risk-badge">CRITICAL RISK</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Do not ship to production</div>
+          </div>
+        </div>
+      </div>
+      <div class="report-body">
+        <div class="report-section-label">Detailed Findings</div>
+        <div class="report-findings">
+          <div class="report-finding critical">
+            <span class="report-finding-sev sev-critical">CRITICAL</span>
+            <span class="report-finding-name">OpenAI API Key</span>
+            <span class="report-finding-file">src/utils/ai.js:14</span>
+          </div>
+          <div class="report-finding critical">
+            <span class="report-finding-sev sev-critical">CRITICAL</span>
+            <span class="report-finding-name">Client-side payment check</span>
+            <span class="report-finding-file">src/components/Paywall.jsx:31</span>
+          </div>
+          <div class="report-finding high">
+            <span class="report-finding-sev sev-high">HIGH</span>
+            <span class="report-finding-name">CORS wildcard</span>
+            <span class="report-finding-file">server/index.js:8</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── VS SECTION ────────────────────────────────────────── -->
+<section id="compare">
+  <div class="section-inner">
+    <div class="fade-up" style="text-align:center">
+      <div class="section-label">Why GetVouch</div>
+      <h2 class="section-title">GetVouch vs Traditional Security Audit</h2>
+    </div>
+    <div class="vs-table fade-up">
+      <div class="vs-header">
+        <div class="vs-col-label" style="text-align:left;padding-left:24px;">Criteria</div>
+        <div class="vs-col-label ours">GetVouch</div>
+        <div class="vs-col-label theirs">Traditional Audit</div>
+      </div>
+      <div class="vs-row">
+        <div class="vs-cell" style="text-align:left;color:var(--text-muted);">Cost</div>
+        <div class="vs-cell ours"><span class="vs-checkmark">Free forever</span></div>
+        <div class="vs-cell theirs">$500 – $2,000+</div>
+      </div>
+      <div class="vs-row">
+        <div class="vs-cell" style="text-align:left;color:var(--text-muted);">Time to results</div>
+        <div class="vs-cell ours"><span class="vs-checkmark">60 seconds</span></div>
+        <div class="vs-cell theirs">2 – 4 weeks</div>
+      </div>
+      <div class="vs-row">
+        <div class="vs-cell" style="text-align:left;color:var(--text-muted);">Your code</div>
+        <div class="vs-cell ours"><span class="vs-checkmark">Stays on your machine</span></div>
+        <div class="vs-cell theirs">Sent to strangers</div>
+      </div>
+      <div class="vs-row">
+        <div class="vs-cell" style="text-align:left;color:var(--text-muted);">Source</div>
+        <div class="vs-cell ours"><span class="vs-checkmark">Open source</span></div>
+        <div class="vs-cell theirs">Black box</div>
+      </div>
+      <div class="vs-row">
+        <div class="vs-cell" style="text-align:left;color:var(--text-muted);">Built by</div>
+        <div class="vs-cell ours"><span class="vs-checkmark">Cybersecurity analyst</span></div>
+        <div class="vs-cell theirs">Generic tool</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FINAL CTA ─────────────────────────────────────────── -->
+<section id="cta">
+  <div class="section-inner cta-inner">
+    <div class="fade-up">
+      <div class="section-label" style="text-align:center;">Get started now</div>
+      <h2 class="section-title" style="text-align:center;">Ready to find your vulnerabilities?</h2>
+      <div style="display:flex;justify-content:center;margin-top:8px;">
+        <a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener" class="btn-primary" style="font-size:17px;padding:18px 40px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          Scan for free on GitHub
+        </a>
+      </div>
+      <p class="cta-sub"><strong>Free forever.</strong> Open source. No account needed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">Get<span>Vouch</span></div>
+      <div class="footer-meta">Built by a Cybersecurity Analyst &nbsp;·&nbsp; getvouch.ai</div>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://getvouch.ai" target="_blank" rel="noopener">getvouch.ai</a>
+    </div>
+    <div class="footer-right">Your code never leaves your machine</div>
+  </div>
+</footer>
+
+<script>
+// ── MOBILE NAV ────────────────────────────────────────────
+function toggleNav() {
+  document.getElementById('navLinks').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  const nav = document.getElementById('navLinks');
+  const burger = document.getElementById('hamburger');
+  if (!nav.contains(e.target) && !burger.contains(e.target)) {
+    nav.classList.remove('open');
+  }
+});
+
+// ── SCROLL ANIMATIONS ─────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('in-view'), i * 80);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// ── TERMINAL ANIMATION ────────────────────────────────────
+const GITHUB = 'https://github.com/getvouch-ai/vouch-cli';
+
+const lines = [
+  { text: '  GetVouch v1.0.0 \u2014 Security Assessment', cls: 't-accent t-bold', delay: 0 },
+  { text: '  \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550', cls: 't-dim', delay: 60 },
+  { text: '  Scanning  : /Users/founder/my-saas-app', cls: 't-white', delay: 120, typewriter: true },
+  { text: '', cls: '', delay: 400 },
+  { text: '  [+] Scanning src/ ...', cls: 't-dim', delay: 600 },
+  { text: '  [+] Scanning server/ ...', cls: 't-dim', delay: 900 },
+  { text: '  [+] Scanning components/ ...', cls: 't-dim', delay: 1200 },
+  { text: '', cls: '', delay: 1500 },
+  { text: '  \u26a0\ufe0f  CRITICAL  \u2014  OpenAI API Key', cls: 't-red t-bold', delay: 1700 },
+  { text: '     src/utils/ai.js:14', cls: 't-dim', delay: 1850 },
+  { text: '     sk-aBcDeFgHiJkLmNoPqRsTuVwXyZ...', cls: 't-red', delay: 1950 },
+  { text: '', cls: '', delay: 2100 },
+  { text: '  \u26a0\ufe0f  CRITICAL  \u2014  Client-side payment check', cls: 't-red t-bold', delay: 2250 },
+  { text: '     src/components/Paywall.jsx:31', cls: 't-dim', delay: 2400 },
+  { text: '     if (isPaid === true) { unlockApp() }', cls: 't-red', delay: 2500 },
+  { text: '', cls: '', delay: 2650 },
+  { text: '  \u26a0\ufe0f  HIGH      \u2014  CORS wildcard', cls: 't-orange t-bold', delay: 2800 },
+  { text: '     server/index.js:8', cls: 't-dim', delay: 2950 },
+  { text: '     origin: \'*\'', cls: 't-orange', delay: 3050 },
+  { text: '', cls: '', delay: 3200 },
+  { text: '  \u26a0\ufe0f  CRITICAL  \u2014  .env not in .gitignore', cls: 't-red t-bold', delay: 3350 },
+  { text: '', cls: '', delay: 3500 },
+  { text: '  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500', cls: 't-dim', delay: 3600 },
+  { text: '  Secrets found      : 3', cls: 't-white', delay: 3750 },
+  { text: '  Auth risks         : 1', cls: 't-white', delay: 3850 },
+  { text: '  CORS issues        : 1', cls: 't-white', delay: 3950 },
+  { text: '  Env file safety    : 1', cls: 't-white', delay: 4050 },
+  { text: '  Files scanned      : 42', cls: 't-white', delay: 4150 },
+  { text: '', cls: '', delay: 4250 },
+  { text: '  Security Score     : 45/100', cls: 't-red t-bold', delay: 4350 },
+  { text: '  Assessment         : CRITICAL \u2014 Do not ship', cls: 't-red t-bold', delay: 4500 },
+  { text: '', cls: '', delay: 4650 },
+  { text: '  \u2713 Report saved       : getvouch-report.html', cls: 't-green t-bold', delay: 4800 },
+  { text: '  Open in browser to view and download as PDF.', cls: 't-dim', delay: 4950 },
+];
+
+const LOOP_DELAY = 8000;
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function typeWriter(el, text, speed = 28) {
+  el.textContent = '';
+  for (let i = 0; i < text.length; i++) {
+    el.textContent += text[i];
+    await sleep(speed);
+  }
+}
+
+async function runTerminal() {
+  const body = document.getElementById('terminalBody');
+  const cursor = document.getElementById('termCursor');
+
+  body.innerHTML = '';
+  body.appendChild(cursor);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const prevDelay = i > 0 ? lines[i - 1].delay : 0;
+    const delta = line.delay - prevDelay;
+    if (delta > 0) await sleep(delta);
+
+    const span = document.createElement('span');
+    span.className = 't-line ' + (line.cls || '');
+
+    if (line.text === '') {
+      span.innerHTML = '&nbsp;';
+    } else if (line.typewriter) {
+      span.textContent = '';
+    } else {
+      span.textContent = line.text;
+    }
+
+    body.insertBefore(span, cursor);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => span.classList.add('visible'));
+    });
+
+    if (line.typewriter) {
+      await typeWriter(span, line.text, 22);
+    }
+
+    body.scrollTop = body.scrollHeight;
+  }
+}
+
+async function terminalLoop() {
+  while (true) {
+    const body = document.getElementById('terminalBody');
+    body.style.minHeight = '340px';
+    await runTerminal();
+    await sleep(LOOP_DELAY);
+  }
+}
+
+terminalLoop();
+
+// ── NAVBAR SCROLL EFFECT ──────────────────────────────────
+window.addEventListener('scroll', function() {
+  const nav = document.querySelector('nav');
+  if (window.scrollY > 20) {
+    nav.style.borderBottomColor = 'rgba(255,255,255,0.1)';
+  } else {
+    nav.style.borderBottomColor = 'rgba(255,255,255,0.07)';
+  }
+});
+</script>
+</body>
+</html>
