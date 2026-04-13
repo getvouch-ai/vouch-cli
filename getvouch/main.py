@@ -854,8 +854,8 @@ def run_vouch(target_dir="."):
                         "snippet": f"{env_file} missing from .gitignore"
                     })
     else:
-        if any(os.path.exists(os.path.join(target_dir, e))
-               for e in [".env", ".env.local", ".env.production"]):
+        if any(os.path.exists(os.path.join(target_dir, e)) for e in
+               [".env", ".env.local", ".env.production"]):
             findings_data["env"].append({
                 "type": "Missing .gitignore",
                 "file": "project root",

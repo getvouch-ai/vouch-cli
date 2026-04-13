@@ -1,2 +1,0 @@
-[console_scripts]
-vouch = getvouch.main:run_vouch
