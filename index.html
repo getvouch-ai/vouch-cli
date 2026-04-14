@@ -270,10 +270,10 @@
   .terminal-body {
     padding: 20px;
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
-    font-size: 13px;
+    font-size: 13.5px;
     line-height: 1.7;
-    height: 340px;
-    max-height: 340px;
+    height: 480px;
+    max-height: 480px;
     overflow: hidden;
   }
 
@@ -1772,7 +1772,7 @@ async function runTerminal() {
 async function terminalLoop() {
   while (true) {
     const body = document.getElementById('terminalBody');
-    body.style.minHeight = '340px';
+    body.style.minHeight = '480px';
     await runTerminal();
     await sleep(LOOP_DELAY);
   }
