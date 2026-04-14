@@ -1,0 +1,9 @@
+{
+  "name": "getvouch-landing",
+  "version": "1.1.0",
+  "private": true,
+  "description": "GetVouch landing page — static site served by Netlify. Python backend lives on Railway.",
+  "scripts": {
+    "build": "echo 'Static site — nothing to build'"
+  }
+}
