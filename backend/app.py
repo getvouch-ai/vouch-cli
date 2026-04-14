@@ -26,7 +26,7 @@ app = FastAPI(title="GetVouch API", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*", "https://getvouch.net", "https://www.getvouch.net"],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
