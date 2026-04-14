@@ -98,7 +98,6 @@ def scan_repo(req: ScanRequest):
 
         if result.returncode != 0:
             err = result.stderr.strip() or "unknown error"
-            # Distinguish "not found" from other clone failures
             if "Repository not found" in err or "not found" in err.lower():
                 raise HTTPException(
                     status_code=404,
@@ -113,11 +112,23 @@ def scan_repo(req: ScanRequest):
         scan_result["repo_url"] = bare_url
         return JSONResponse(content=scan_result)
 
+    except HTTPException:
+        raise
     except subprocess.TimeoutExpired:
         raise HTTPException(
             status_code=408,
             detail=f"Repository clone timed out after {CLONE_TIMEOUT_SECS}s. "
-                   "Try a smaller repository or use --depth flag."
+                   "Try a smaller repository."
+        )
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=503,
+            detail="git is not available on this server. Contact support."
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Scan failed: {str(exc)}"
         )
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
