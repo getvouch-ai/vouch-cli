@@ -846,6 +846,323 @@
     transform: translateY(0);
   }
 
+  /* ── WEB SCANNER ────────────────────────────────────────── */
+  #web-scanner {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 72px 40px;
+  }
+  .scanner-card {
+    max-width: 760px;
+    margin: 0 auto;
+    background: var(--bg3);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius);
+    padding: 44px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .scanner-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), #00a8d6);
+  }
+  .scanner-headline {
+    font-size: clamp(22px, 3vw, 30px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .scanner-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+  }
+  .scanner-input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 0;
+  }
+  .scanner-input {
+    flex: 1;
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+    min-width: 0;
+  }
+  .scanner-input::placeholder { color: var(--text-dim); }
+  .scanner-input:focus { border-color: var(--accent); }
+  .scanner-btn {
+    background: var(--accent);
+    color: #0a0f1a;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 14px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s, transform 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .scanner-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+  .scanner-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Loading terminal */
+  .scan-loading {
+    display: none;
+    margin-top: 24px;
+    background: #050a14;
+    border: 1px solid rgba(0,212,170,0.15);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .scan-loading.active { display: block; }
+  .scan-loading-bar {
+    background: #0d1424;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .scan-loading-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .scan-loading-dot:nth-child(1) { background: #ff5f57; }
+  .scan-loading-dot:nth-child(2) { background: #febc2e; }
+  .scan-loading-dot:nth-child(3) { background: #28c840; }
+  .scan-loading-title {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: monospace;
+    margin-right: 27px;
+  }
+  .scan-loading-body {
+    padding: 16px 18px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    min-height: 80px;
+  }
+  .scan-log-line {
+    display: block;
+    animation: slideIn 0.15s ease both;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .sl-dim    { color: #4b5568; }
+  .sl-accent { color: var(--accent); }
+  .sl-white  { color: #e2e8f0; }
+  .scan-cursor {
+    display: inline-block;
+    width: 7px; height: 13px;
+    background: var(--accent);
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+    margin-left: 2px;
+  }
+
+  /* Error */
+  .scan-error {
+    display: none;
+    margin-top: 20px;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    font-size: 14px;
+    color: #fca5a5;
+    display: none;
+    align-items: center;
+    gap: 10px;
+  }
+  .scan-error.active { display: flex; }
+
+  /* Results */
+  .scan-results {
+    display: none;
+    margin-top: 24px;
+  }
+  .scan-results.active { display: block; }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 28px 32px;
+    background: var(--bg4);
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .result-score-num {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .result-score-denom {
+    font-size: 24px;
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+  .result-meta { flex: 1; min-width: 160px; }
+  .result-risk-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+  }
+  .badge-low      { background: rgba(22,163,74,0.15);  color: #4ade80; border: 1px solid rgba(22,163,74,0.3); }
+  .badge-moderate { background: rgba(234,179,8,0.12);  color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+  .badge-high     { background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .badge-critical { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+  .result-rating {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .result-files {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .result-clean {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 28px;
+    background: rgba(22,163,74,0.08);
+    border: 1px solid rgba(22,163,74,0.25);
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+  }
+  .result-clean-icon { font-size: 32px; line-height: 1; }
+  .result-clean-text { font-size: 18px; font-weight: 700; color: #4ade80; }
+  .result-clean-sub  { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+  .result-categories { display: flex; flex-direction: column; gap: 12px; }
+
+  .result-cat {
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .result-cat-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .result-cat-header:hover { background: rgba(255,255,255,0.03); }
+  .result-cat-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .result-cat-count {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 10px;
+  }
+  .result-cat-chevron {
+    color: var(--text-dim);
+    font-size: 12px;
+    transition: transform 0.2s;
+  }
+  .result-cat.open .result-cat-chevron { transform: rotate(180deg); }
+
+  .result-cat-body {
+    display: none;
+    border-top: 1px solid var(--border);
+  }
+  .result-cat.open .result-cat-body { display: block; }
+
+  .result-finding {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 10px 14px;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+  }
+  .result-finding:last-child { border-bottom: none; }
+  .result-finding-type {
+    font-weight: 600;
+    color: var(--text);
+    grid-column: 2;
+  }
+  .result-finding-loc {
+    font-family: 'SF Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    grid-column: 2;
+    margin-top: -4px;
+  }
+  .result-finding-snippet {
+    font-family: 'SF Mono', monospace;
+    font-size: 11px;
+    color: #6b7280;
+    grid-column: 2;
+    margin-top: -2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 400px;
+  }
+  .finding-sev {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  @media (max-width: 640px) {
+    #web-scanner { padding: 48px 16px; }
+    .scanner-card { padding: 28px 20px; }
+    .scanner-input-row { flex-direction: column; }
+    .scanner-btn { width: 100%; justify-content: center; }
+    .result-score-num { font-size: 48px; }
+    .result-finding-snippet { display: none; }
+  }
+
   /* ── RESPONSIVE ─────────────────────────────────────────── */
   @media (max-width: 900px) {
     nav { padding: 0 20px; }
@@ -963,6 +1280,77 @@
     </div>
   </div>
 </div>
+
+<!-- ── WEB SCANNER ───────────────────────────────────────── -->
+<section id="web-scanner">
+  <div class="scanner-card fade-up">
+    <div class="scanner-headline">Scan your GitHub repo — free</div>
+    <div class="scanner-sub">Paste any public GitHub URL. Results in seconds. Your code stays on your machine.</div>
+
+    <div class="scanner-input-row">
+      <input
+        id="scanInput"
+        class="scanner-input"
+        type="url"
+        placeholder="https://github.com/username/repo"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button id="scanBtn" class="scanner-btn" onclick="runScan()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Scan Now
+      </button>
+    </div>
+
+    <!-- Loading terminal -->
+    <div id="scanLoading" class="scan-loading">
+      <div class="scan-loading-bar">
+        <div class="scan-loading-dot"></div>
+        <div class="scan-loading-dot"></div>
+        <div class="scan-loading-dot"></div>
+        <div class="scan-loading-title">GetVouch Scanner — running</div>
+      </div>
+      <div class="scan-loading-body" id="scanLog">
+        <span class="scan-cursor"></span>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="scanError" class="scan-error">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="scanErrorMsg"></span>
+    </div>
+
+    <!-- Results -->
+    <div id="scanResults" class="scan-results">
+
+      <!-- Score header -->
+      <div class="result-header" id="resultHeader">
+        <div>
+          <span class="result-score-num" id="resultScore"></span>
+          <span class="result-score-denom">/100</span>
+        </div>
+        <div class="result-meta">
+          <div class="result-risk-badge" id="resultBadge"></div>
+          <div class="result-rating" id="resultRating"></div>
+          <div class="result-files" id="resultFiles"></div>
+        </div>
+      </div>
+
+      <!-- Clean state -->
+      <div class="result-clean" id="resultClean" style="display:none">
+        <div class="result-clean-icon">✅</div>
+        <div>
+          <div class="result-clean-text">Clean — Safe to ship</div>
+          <div class="result-clean-sub">No security issues detected across all 9 categories.</div>
+        </div>
+      </div>
+
+      <!-- Findings by category -->
+      <div class="result-categories" id="resultCategories"></div>
+    </div>
+  </div>
+</section>
 
 <!-- ── TRUST BAR ─────────────────────────────────────────── -->
 <div class="trust-bar">
@@ -1357,6 +1745,183 @@ async function terminalLoop() {
 }
 
 terminalLoop();
+
+// ── WEB SCANNER ───────────────────────────────────────────
+const API = 'https://web-production-8e953.up.railway.app/api/scan';
+
+const CAT_META = {
+  secrets:      { label: 'Exposed API Keys & Secrets',   sev: 'CRITICAL', sc: '#f87171', sb: 'rgba(239,68,68,0.12)'  },
+  auth:         { label: 'Client-Side Auth Bypass',      sev: 'CRITICAL', sc: '#f87171', sb: 'rgba(239,68,68,0.12)'  },
+  sql:          { label: 'SQL Injection Risks',          sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
+  cors:         { label: 'CORS Misconfiguration',        sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
+  env:          { label: 'Env File Exposure',            sev: 'CRITICAL', sc: '#f87171', sb: 'rgba(239,68,68,0.12)'  },
+  validation:   { label: 'Missing Input Validation',     sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
+  idor:         { label: 'Insecure Object References',   sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
+  dependencies: { label: 'Dependencies & Config Issues', sev: 'MEDIUM',   sc: '#fbbf24', sb: 'rgba(234,179,8,0.12)'  },
+};
+
+const SCORE_COLOR = { LOW: '#4ade80', MODERATE: '#fbbf24', HIGH: '#fb923c', CRITICAL: '#f87171' };
+const BADGE_CLASS = { LOW: 'badge-low', MODERATE: 'badge-moderate', HIGH: 'badge-high', CRITICAL: 'badge-critical' };
+
+const LOG_LINES = [
+  { text: '  Connecting to GetVouch API...', cls: 'sl-dim',    delay: 0   },
+  { text: '  Downloading repository ZIP...', cls: 'sl-white',  delay: 600 },
+  { text: '  Extracting source files...',    cls: 'sl-white',  delay: 1400 },
+  { text: '  Scanning for secrets...',       cls: 'sl-accent', delay: 2000 },
+  { text: '  Scanning for auth issues...',   cls: 'sl-accent', delay: 2500 },
+  { text: '  Scanning for SQL risks...',     cls: 'sl-accent', delay: 3000 },
+  { text: '  Scanning for CORS issues...',   cls: 'sl-accent', delay: 3400 },
+  { text: '  Scanning for IDOR patterns...', cls: 'sl-accent', delay: 3800 },
+  { text: '  Analysing findings...',         cls: 'sl-dim',    delay: 4200 },
+];
+
+let logTimer = null;
+
+function showLog() {
+  const body = document.getElementById('scanLog');
+  body.innerHTML = '<span class="scan-cursor"></span>';
+  let i = 0;
+  function next() {
+    if (i >= LOG_LINES.length) return;
+    const l = LOG_LINES[i++];
+    logTimer = setTimeout(() => {
+      const span = document.createElement('span');
+      span.className = 'scan-log-line ' + l.cls;
+      span.textContent = l.text;
+      body.insertBefore(span, body.lastChild);
+      next();
+    }, i === 1 ? 0 : LOG_LINES[i-1].delay - LOG_LINES[i-2].delay);
+  }
+  next();
+}
+
+function clearLog() {
+  if (logTimer) { clearTimeout(logTimer); logTimer = null; }
+}
+
+function setState(state) {
+  document.getElementById('scanLoading').classList.toggle('active',  state === 'loading');
+  document.getElementById('scanError').classList.toggle('active',    state === 'error');
+  document.getElementById('scanResults').classList.toggle('active',  state === 'results');
+  document.getElementById('scanBtn').disabled = state === 'loading';
+}
+
+function showError(msg) {
+  clearLog();
+  document.getElementById('scanErrorMsg').textContent = msg;
+  setState('error');
+}
+
+function renderResults(data) {
+  clearLog();
+
+  // Score
+  const scoreEl = document.getElementById('resultScore');
+  scoreEl.textContent = data.score;
+  scoreEl.style.color = SCORE_COLOR[data.risk_level] || '#fff';
+
+  // Badge
+  const badge = document.getElementById('resultBadge');
+  badge.textContent = data.risk_level;
+  badge.className = 'result-risk-badge ' + (BADGE_CLASS[data.risk_level] || '');
+
+  document.getElementById('resultRating').textContent = data.rating;
+  document.getElementById('resultFiles').textContent =
+    `${data.files_scanned} file${data.files_scanned !== 1 ? 's' : ''} scanned`;
+
+  // Clean state
+  const isClean = data.totals.total === 0;
+  document.getElementById('resultClean').style.display = isClean ? 'flex' : 'none';
+
+  // Categories
+  const container = document.getElementById('resultCategories');
+  container.innerHTML = '';
+
+  if (!isClean) {
+    for (const [key, meta] of Object.entries(CAT_META)) {
+      const list = data.findings[key] || [];
+      if (list.length === 0) continue;
+
+      const cat = document.createElement('div');
+      cat.className = 'result-cat';
+      cat.innerHTML = `
+        <div class="result-cat-header" onclick="toggleCat(this.parentElement)">
+          <span class="result-cat-name">${meta.label}</span>
+          <span class="result-cat-count finding-sev"
+                style="background:${meta.sb};color:${meta.sc};border:1px solid ${meta.sc}40">
+            ${list.length} ${meta.sev}
+          </span>
+          <span class="result-cat-chevron">▼</span>
+        </div>
+        <div class="result-cat-body">
+          ${list.map(f => `
+            <div class="result-finding">
+              <span class="finding-sev" style="background:${meta.sb};color:${meta.sc};border:1px solid ${meta.sc}40">
+                ${meta.sev}
+              </span>
+              <span class="result-finding-type">${escHtml(f.type)}</span>
+              <span class="result-finding-loc">${escHtml(f.file)}${f.line !== '-' ? ':' + f.line : ''}</span>
+              ${f.snippet ? `<span class="result-finding-snippet">${escHtml(f.snippet)}</span>` : ''}
+            </div>
+          `).join('')}
+        </div>`;
+      container.appendChild(cat);
+    }
+
+    // Auto-open the first category
+    const first = container.querySelector('.result-cat');
+    if (first) first.classList.add('open');
+  }
+
+  setState('results');
+  document.getElementById('scanResults').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function toggleCat(el) { el.classList.toggle('open'); }
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function runScan() {
+  const url = document.getElementById('scanInput').value.trim();
+  if (!url) {
+    document.getElementById('scanInput').focus();
+    return;
+  }
+  if (!url.startsWith('https://github.com/')) {
+    showError('Please enter a valid GitHub URL (https://github.com/username/repo).');
+    return;
+  }
+
+  setState('loading');
+  showLog();
+
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo_url: url }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showError(data.detail || `Server error (${res.status}). Please try again.`);
+      return;
+    }
+
+    renderResults(data);
+  } catch (err) {
+    showError('Could not reach the scanner API. Please try again in a moment.');
+  }
+}
+
+// Allow Enter key to trigger scan
+document.getElementById('scanInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runScan();
+});
 
 // ── NAVBAR SCROLL EFFECT ──────────────────────────────────
 window.addEventListener('scroll', function() {
