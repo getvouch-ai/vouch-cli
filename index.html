@@ -225,6 +225,7 @@
   /* ── TERMINAL ───────────────────────────────────────────── */
   .terminal-wrap {
     position: relative;
+    overflow: hidden;
   }
   .terminal-glow {
     position: absolute;
@@ -271,7 +272,8 @@
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
     font-size: 13px;
     line-height: 1.7;
-    min-height: 340px;
+    height: 340px;
+    max-height: 340px;
     overflow: hidden;
   }
 
