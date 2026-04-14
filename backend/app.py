@@ -46,7 +46,7 @@ class ScanRequest(BaseModel):
 # ── Routes ────────────────────────────────────────────────────────────
 @app.get("/", include_in_schema=False)
 def index():
-    html_path = Path(__file__).parent / "index.html"
+    html_path = Path(__file__).parent.parent / "index.html"
     if html_path.exists():
         return FileResponse(html_path, media_type="text/html")
     return JSONResponse({"status": "GetVouch API running. POST /api/scan to scan."})

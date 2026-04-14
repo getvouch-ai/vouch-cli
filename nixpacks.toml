@@ -1,2 +1,5 @@
 [phases.setup]
-nixPkgs = ["git", "python312"]
+nixPkgs = ["python312"]
+
+[phases.install]
+cmds = ["pip install -r backend/requirements.txt"]
