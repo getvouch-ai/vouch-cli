@@ -23,7 +23,7 @@ GetVouch is the check that runs before that happens.
 
 ---
 
-## What GetVouch v1.0.0 scans for
+## What GetVouch v1.2.0 scans for
 
 ### Secrets and credentials — 25 types
 | Secret | Example pattern |
@@ -97,7 +97,7 @@ No API key. No signup. No data leaves your machine.
 
 ## Sample terminal output
 ```
-  GetVouch v1.0.0 — Full Spectrum Security Assessment
+  GetVouch v1.2.0 — Full Spectrum Security Assessment
   ====================================================
   Secrets found      : 2
   Auth risks         : 1
@@ -116,7 +116,7 @@ No API key. No signup. No data leaves your machine.
   Generating executive report...
   Report saved       : getvouch-report.html
   ====================================================
-  GetVouch v1.0.0 — getvouch.ai
+  GetVouch v1.2.0 — getvouch.ai
 ```
 
 ---
@@ -155,11 +155,11 @@ No jargon, no upsell.
 - [x] v0.2.0 — Client-side auth detection, SQL scanner
 - [x] v0.3.0 — Executive HTML report, PDF download
 - [x] v1.0.0 — Full spectrum scan, 9 security domains
-- [ ] v1.1.0 — Scan any folder by path argument
-- [ ] v1.2.0 — Web interface — paste repo URL, get report
+- [x] v1.1.0 — Scan any folder by path argument
+- [x] v1.2.0 — Web interface — paste repo URL, get report
 - [ ] v2.0.0 — GitHub App — auto-scan every PR
 
 ---
 
 *Built by Sufiyan — Cybersecurity Analyst turned founder.*
-*getvouch.ai | v1.0.0*
+*getvouch.ai | v1.2.0*
