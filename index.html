@@ -1005,29 +1005,177 @@
   }
   .scan-results.active { display: block; }
 
-  .download-report-row {
-    display: none;
-    justify-content: center;
-    margin-top: 28px;
+  .download-report-row { display: none !important; } /* hidden in freemium */
+
+  /* ── SEVERITY SUMMARY ───────────────────────────────────── */
+  .severity-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
   }
-  .download-report-row.visible { display: flex; }
-  .download-report-btn {
+  .sev-pill {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+  }
+  .sev-critical { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+  .sev-high     { background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .sev-medium   { background: rgba(234,179,8,0.12);  color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+
+  /* ── LOCKED SECTION ─────────────────────────────────────── */
+  .locked-section {
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .locked-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .locked-icon {
+    font-size: 22px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .locked-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .locked-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .locked-preview {
+    position: relative;
+    padding: 6px 0;
+  }
+  .locked-preview::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, var(--bg4));
+    pointer-events: none;
+  }
+  .locked-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+  }
+  .locked-row:last-child { border-bottom: none; }
+  .locked-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+  .locked-type {
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .locked-path {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .blur-bar {
+    display: inline-block;
+    width: 110px;
+    height: 11px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+  .blur-line {
+    display: inline-block;
+    width: 22px;
+    height: 11px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+  .locked-more {
+    padding: 10px 22px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  .locked-cta {
+    padding: 20px 22px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+  .unlock-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     background: var(--accent);
     color: #0a0f1a;
-    border: none;
+    text-decoration: none;
     border-radius: 8px;
-    padding: 13px 28px;
-    font-size: 14px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
+    padding: 14px 36px;
+    font-size: 15px;
+    font-weight: 800;
     letter-spacing: 0.01em;
     transition: opacity 0.2s, transform 0.15s;
   }
-  .download-report-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .unlock-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .locked-cta-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    max-width: 360px;
+    line-height: 1.5;
+  }
+
+  /* ── ALREADY SCANNED CTA ────────────────────────────────── */
+  .already-scanned-cta {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 32px 20px 8px;
+    gap: 12px;
+  }
+  .already-scanned-cta.visible { display: flex; }
+  .asc-icon { font-size: 36px; line-height: 1; }
+  .asc-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .asc-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 400px;
+    line-height: 1.6;
+    margin-bottom: 4px;
+  }
 
   .result-header {
     display: flex;
@@ -1313,7 +1461,7 @@
     <div class="scanner-headline">Scan your GitHub repo — free</div>
     <div class="scanner-sub">Paste any public GitHub URL. Results in seconds. Your code stays on your machine.</div>
 
-    <div class="scanner-input-row">
+    <div id="scanInputRow" class="scanner-input-row">
       <input
         id="scanInput"
         class="scanner-input"
@@ -1326,6 +1474,16 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         Scan Now
       </button>
+    </div>
+
+    <!-- Already scanned — upgrade CTA -->
+    <div class="already-scanned-cta" id="alreadyScannedCta">
+      <div class="asc-icon">🔒</div>
+      <div class="asc-title">You've used your free scan</div>
+      <div class="asc-sub">Upgrade to unlock full findings — file names, line numbers, code snippets, and downloadable PDF reports for unlimited repos.</div>
+      <a href="https://forms.gle/5vudiTSnZSorE9zu8" target="_blank" rel="noopener" class="unlock-btn">
+        Unlock Full Report →
+      </a>
     </div>
 
     <!-- Loading terminal -->
@@ -1363,6 +1521,9 @@
         </div>
       </div>
 
+      <!-- Severity summary (free tier) -->
+      <div class="severity-summary" id="severitySummary" style="display:none"></div>
+
       <!-- Clean state -->
       <div class="result-clean" id="resultClean" style="display:none">
         <div class="result-clean-icon">✅</div>
@@ -1372,16 +1533,26 @@
         </div>
       </div>
 
-      <!-- Findings by category -->
-      <div class="result-categories" id="resultCategories"></div>
-
-      <!-- Download report -->
-      <div class="download-report-row" id="downloadReportRow">
-        <button class="download-report-btn" onclick="downloadReport()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download Report
-        </button>
+      <!-- Locked findings section (freemium paywall) -->
+      <div class="locked-section" id="lockedSection" style="display:none">
+        <div class="locked-header">
+          <span class="locked-icon">🔒</span>
+          <div>
+            <div class="locked-title">Full findings — file names &amp; line numbers</div>
+            <div class="locked-sub">Unlock to see exactly where each vulnerability lives in your code</div>
+          </div>
+        </div>
+        <div class="locked-preview" id="lockedPreview"></div>
+        <div class="locked-cta">
+          <a href="https://forms.gle/5vudiTSnZSorE9zu8" target="_blank" rel="noopener" class="unlock-btn">
+            🔓 Unlock Full Report →
+          </a>
+          <div class="locked-cta-sub">File names · Line numbers · Code snippets · Downloadable PDF report</div>
+        </div>
       </div>
+
+      <!-- Download report (hidden in freemium) -->
+      <div class="download-report-row" id="downloadReportRow"></div>
     </div>
   </div>
 </section>
@@ -1853,7 +2024,6 @@ function showError(msg) {
 function renderResults(data) {
   clearLog();
   lastScanData = data;
-  document.getElementById('downloadReportRow').classList.add('visible');
 
   // Score
   const scoreEl = document.getElementById('resultScore');
@@ -1869,49 +2039,63 @@ function renderResults(data) {
   document.getElementById('resultFiles').textContent =
     `${data.files_scanned} file${data.files_scanned !== 1 ? 's' : ''} scanned`;
 
-  // Clean state
   const isClean = data.totals.total === 0;
+
+  // Severity summary pills
+  const t = data.totals;
+  const critCount = (t.secrets||0) + (t.auth||0) + (t.env||0);
+  const highCount = (t.sql||0) + (t.cors||0) + (t.validation||0) + (t.idor||0);
+  const medCount  = t.dependencies||0;
+  const summaryEl = document.getElementById('severitySummary');
+  if (!isClean) {
+    const pills = [];
+    if (critCount > 0) pills.push(`<span class="sev-pill sev-critical">${critCount} Critical</span>`);
+    if (highCount > 0) pills.push(`<span class="sev-pill sev-high">${highCount} High</span>`);
+    if (medCount  > 0) pills.push(`<span class="sev-pill sev-medium">${medCount} Medium</span>`);
+    summaryEl.innerHTML = pills.join('');
+    summaryEl.style.display = 'flex';
+  } else {
+    summaryEl.style.display = 'none';
+  }
+
+  // Clean state
   document.getElementById('resultClean').style.display = isClean ? 'flex' : 'none';
 
-  // Categories
-  const container = document.getElementById('resultCategories');
-  container.innerHTML = '';
-
+  // Locked section — blurred preview rows
+  const lockedSection = document.getElementById('lockedSection');
   if (!isClean) {
+    const preview = document.getElementById('lockedPreview');
+    const rows = [];
     for (const [key, meta] of Object.entries(CAT_META)) {
       const list = data.findings[key] || [];
-      if (list.length === 0) continue;
-
-      const cat = document.createElement('div');
-      cat.className = 'result-cat';
-      cat.innerHTML = `
-        <div class="result-cat-header" onclick="toggleCat(this.parentElement)">
-          <span class="result-cat-name">${meta.label}</span>
-          <span class="result-cat-count finding-sev"
-                style="background:${meta.sb};color:${meta.sc};border:1px solid ${meta.sc}40">
-            ${list.length} ${meta.sev}
-          </span>
-          <span class="result-cat-chevron">▼</span>
-        </div>
-        <div class="result-cat-body">
-          ${list.map(f => `
-            <div class="result-finding">
-              <span class="finding-sev" style="background:${meta.sb};color:${meta.sc};border:1px solid ${meta.sc}40">
-                ${meta.sev}
-              </span>
-              <span class="result-finding-type">${escHtml(f.type)}</span>
-              <span class="result-finding-loc">${escHtml(f.file)}${f.line !== '-' ? ':' + f.line : ''}</span>
-              ${f.snippet ? `<span class="result-finding-snippet">${escHtml(f.snippet)}</span>` : ''}
-            </div>
-          `).join('')}
-        </div>`;
-      container.appendChild(cat);
+      if (!list.length) continue;
+      for (const f of list) {
+        if (rows.length >= 7) break;
+        rows.push({ sev: meta.sev, sc: meta.sc, sb: meta.sb, type: f.type });
+      }
+      if (rows.length >= 7) break;
     }
-
-    // Auto-open the first category
-    const first = container.querySelector('.result-cat');
-    if (first) first.classList.add('open');
+    const barWidths = [90, 120, 100, 140, 80, 115, 95];
+    preview.innerHTML = rows.map((r, i) => `
+      <div class="locked-row">
+        <span class="locked-badge" style="background:${r.sb};color:${r.sc};border:1px solid ${r.sc}40">${r.sev}</span>
+        <span class="locked-type">${escHtml(r.type)}</span>
+        <span class="locked-path">
+          <span class="blur-bar" style="width:${barWidths[i % barWidths.length]}px"></span>
+          <span style="color:var(--text-dim);font-size:11px;margin:0 2px">:</span>
+          <span class="blur-line"></span>
+        </span>
+      </div>`).join('') +
+      (data.totals.total > rows.length
+        ? `<div class="locked-more">+${data.totals.total - rows.length} more findings hidden</div>`
+        : '');
+    lockedSection.style.display = 'block';
+  } else {
+    lockedSection.style.display = 'none';
   }
+
+  // Mark free scan used in localStorage
+  localStorage.setItem('getvouch_scanned', '1');
 
   setState('results');
   document.getElementById('scanResults').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1962,6 +2146,18 @@ async function runScan() {
 document.getElementById('scanInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') runScan();
 });
+
+// ── FREEMIUM: check if already scanned ───────────────────
+function checkAlreadyScanned() {
+  if (localStorage.getItem('getvouch_scanned')) {
+    document.getElementById('scanInputRow').style.display     = 'none';
+    document.getElementById('scanBtn').style.display          = 'none';
+    document.getElementById('alreadyScannedCta').classList.add('visible');
+    document.querySelector('.scanner-sub').textContent =
+      'You\'ve used your free scan. Upgrade to unlock unlimited scans with full findings.';
+  }
+}
+checkAlreadyScanned();
 
 // ── REPORT DOWNLOAD ───────────────────────────────────────
 function downloadReport() {
