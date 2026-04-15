@@ -903,6 +903,68 @@
   }
   .scanner-input::placeholder { color: var(--text-dim); }
   .scanner-input:focus { border-color: var(--accent); }
+
+  /* ── REPO HELP ──────────────────────────────────────────── */
+  .repo-help {
+    margin-top: 12px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .repo-help summary {
+    list-style: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 0;
+    user-select: none;
+    transition: color 0.15s;
+  }
+  .repo-help summary::-webkit-details-marker { display: none; }
+  .repo-help summary:hover { color: var(--text-muted); }
+  .repo-help-chevron {
+    font-size: 10px;
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+  .repo-help[open] .repo-help-chevron { transform: rotate(180deg); }
+  .repo-help-body {
+    margin-top: 10px;
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .repo-help-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+  }
+  .repo-help-row:last-child { border-bottom: none; }
+  .repo-help-logo {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    object-fit: contain;
+    background: rgba(255,255,255,0.04);
+  }
+  .repo-help-platform {
+    font-weight: 700;
+    color: var(--text);
+    min-width: 90px;
+    flex-shrink: 0;
+  }
+  .repo-help-tip {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.4;
+  }
   .scanner-btn {
     background: var(--accent);
     color: #0a0f1a;
@@ -1327,6 +1389,41 @@
         Scan Now
       </button>
     </div>
+
+    <!-- How to find your repo URL -->
+    <details class="repo-help">
+      <summary>
+        Need help finding your repo URL?
+        <span class="repo-help-chevron">▼</span>
+      </summary>
+      <div class="repo-help-body">
+        <div class="repo-help-row">
+          <img class="repo-help-logo" src="https://lovable.dev/favicon.ico" alt="Lovable" width="20" height="20">
+          <span class="repo-help-platform">Lovable</span>
+          <span class="repo-help-tip">Open your project → click the GitHub icon (top right) → copy the repo URL</span>
+        </div>
+        <div class="repo-help-row">
+          <img class="repo-help-logo" src="https://replit.com/favicon.ico" alt="Replit" width="20" height="20">
+          <span class="repo-help-platform">Replit</span>
+          <span class="repo-help-tip">Open your Repl → Tools → Git → Connect to GitHub → copy the repo URL</span>
+        </div>
+        <div class="repo-help-row">
+          <img class="repo-help-logo" src="https://cursor.sh/favicon.ico" alt="Cursor" width="20" height="20">
+          <span class="repo-help-platform">Cursor</span>
+          <span class="repo-help-tip">Open terminal → run <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">git remote get-url origin</code> → copy the output</span>
+        </div>
+        <div class="repo-help-row">
+          <img class="repo-help-logo" src="https://bolt.new/favicon.ico" alt="Bolt" width="20" height="20">
+          <span class="repo-help-platform">Bolt</span>
+          <span class="repo-help-tip">Open your project → click the GitHub icon → push to GitHub → copy the repo URL</span>
+        </div>
+        <div class="repo-help-row">
+          <img class="repo-help-logo" src="https://claude.ai/favicon.ico" alt="Claude Code" width="20" height="20">
+          <span class="repo-help-platform">Claude Code</span>
+          <span class="repo-help-tip">In your project → run <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">git remote get-url origin</code> in the terminal</span>
+        </div>
+      </div>
+    </details>
 
     <!-- Loading terminal -->
     <div id="scanLoading" class="scan-loading">
