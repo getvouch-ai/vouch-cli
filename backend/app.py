@@ -72,10 +72,22 @@ def _increment_counter(name: str) -> None:
     try:
         urllib.request.urlopen(
             f"https://api.counterapi.dev/v1/getvouch/{name}/up",
-            timeout=3,
+            timeout=10,
         )
     except Exception:
         pass
+
+
+@app.get("/debug/counter", include_in_schema=False)
+def debug_counter():
+    try:
+        with urllib.request.urlopen(
+            "https://api.counterapi.dev/v1/getvouch/scans/",
+            timeout=10,
+        ) as resp:
+            return JSONResponse({"ok": True, "body": resp.read().decode()})
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": type(exc).__name__, "detail": str(exc)})
 
 
 @app.post("/api/scan")
