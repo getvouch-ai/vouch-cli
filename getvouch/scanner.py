@@ -266,6 +266,15 @@ def scan_directory(target_dir: str) -> dict:
     totals = {k: len(v) for k, v in findings.items()}
     totals["total"] = sum(totals.values())
 
+    # Attach AI fix prompts to every finding
+    try:
+        from getvouch.fix_prompts import generate_fix_prompt
+        for category, finding_list in findings.items():
+            for finding in finding_list:
+                finding["fix_prompt"] = generate_fix_prompt(finding, category)
+    except Exception:
+        pass
+
     return {
         "findings":     findings,
         "score":        score,
