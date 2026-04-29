@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-6X5TX0VMN4"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -11,1873 +10,2273 @@
   gtag('js', new Date());
   gtag('config', 'G-6X5TX0VMN4');
 </script>
-<title>GetVouch — Find Security Holes in Your Vibe-Coded App</title>
-<meta name="description" content="GetVouch scans your AI-generated codebase for exposed API keys, auth bypasses, SQL injection, and 20+ more vulnerabilities in 60 seconds. Free, open source, runs locally.">
+<title>GetVouch — Security Scanner for AI-Generated and Human-Written Code</title>
+<meta name="description" content="GetVouch scans your GitHub repo for exposed API keys, auth bypasses, SQL injection, CORS issues, and 25+ more vulnerabilities. Free. No signup. No upload.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
 <style>
-  :root {
-    --bg: #0a0f1a;
-    --bg2: #0d1424;
-    --bg3: #111827;
-    --bg4: #1a2235;
-    --accent: #00d4aa;
-    --accent-dim: rgba(0, 212, 170, 0.12);
-    --accent-glow: rgba(0, 212, 170, 0.3);
-    --text: #ffffff;
-    --text-muted: #8b95a8;
-    --text-dim: #4b5568;
-    --red: #ef4444;
-    --orange: #f97316;
-    --yellow: #eab308;
-    --border: rgba(255,255,255,0.07);
-    --border-accent: rgba(0, 212, 170, 0.25);
-    --radius: 12px;
-    --radius-sm: 8px;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Arial, sans-serif;
-    font-size: 16px;
-    line-height: 1.6;
-    overflow-x: hidden;
-  }
-
-  a { color: inherit; text-decoration: none; }
-
-  /* ── NAVBAR ─────────────────────────────────────────────── */
-  nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    background: rgba(10, 15, 26, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 40px;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .nav-logo {
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: #fff;
-  }
-  .nav-logo span { color: var(--accent); }
-
-  .nav-links {
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    list-style: none;
-  }
-  .nav-links a {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-muted);
-    transition: color 0.2s;
-  }
-  .nav-links a:hover { color: #fff; }
-
-  .nav-cta {
-    background: var(--accent);
-    color: #0a0f1a !important;
-    padding: 8px 20px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 700;
-    transition: opacity 0.2s, transform 0.15s;
-  }
-  .nav-cta:hover { opacity: 0.9; transform: translateY(-1px); }
-
-  .nav-hamburger {
-    display: none;
-    flex-direction: column;
-    gap: 5px;
-    cursor: pointer;
-    padding: 4px;
-  }
-  .nav-hamburger span {
-    display: block;
-    width: 22px;
-    height: 2px;
-    background: var(--text);
-    border-radius: 2px;
-    transition: all 0.3s;
-  }
-
-  /* ── HERO ───────────────────────────────────────────────── */
-  .hero {
-    min-height: 100vh;
-    padding: 120px 40px 80px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 60px;
-    align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--accent-dim);
-    border: 1px solid var(--border-accent);
-    color: var(--accent);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 6px 14px;
-    border-radius: 20px;
-    margin-bottom: 24px;
-  }
-  .hero-badge::before {
-    content: '';
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
-
-  .hero h1 {
-    font-size: clamp(32px, 4vw, 52px);
-    font-weight: 800;
-    line-height: 1.1;
-    letter-spacing: -0.03em;
-    margin-bottom: 12px;
-  }
-  .hero h1 em {
-    font-style: normal;
-    color: var(--accent);
-  }
-
-  .hero h2 {
-    font-size: clamp(22px, 3vw, 36px);
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-    color: var(--text-muted);
-    margin-bottom: 24px;
-  }
-
-  .hero-sub {
-    font-size: 16px;
-    color: var(--text-muted);
-    line-height: 1.75;
-    max-width: 480px;
-    margin-bottom: 36px;
-  }
-
-  .hero-buttons {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-  }
-
-  .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--accent);
-    color: #0a0f1a;
-    font-size: 15px;
-    font-weight: 700;
-    padding: 14px 28px;
-    border-radius: var(--radius-sm);
-    transition: all 0.2s;
-    cursor: pointer;
-    border: none;
-    white-space: nowrap;
-  }
-  .btn-primary:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 8px 24px var(--accent-glow); }
-
-  .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: transparent;
-    color: var(--text);
-    font-size: 15px;
-    font-weight: 600;
-    padding: 14px 28px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    transition: all 0.2s;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
-
-  /* ── TERMINAL ───────────────────────────────────────────── */
-  .terminal-wrap {
-    position: relative;
-    overflow: hidden;
-  }
-  .terminal-glow {
-    position: absolute;
-    inset: -30px;
-    background: radial-gradient(ellipse at center, rgba(0, 212, 170, 0.08) 0%, transparent 70%);
-    pointer-events: none;
-  }
-
-  .terminal {
-    background: #050a14;
-    border: 1px solid rgba(0, 212, 170, 0.2);
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,170,0.05);
-    position: relative;
-  }
-
-  .terminal-bar {
-    background: #0d1424;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-  }
-  .terminal-dot {
-    width: 12px; height: 12px;
-    border-radius: 50%;
-  }
-  .terminal-dot:nth-child(1) { background: #ff5f57; }
-  .terminal-dot:nth-child(2) { background: #febc2e; }
-  .terminal-dot:nth-child(3) { background: #28c840; }
-  .terminal-title {
-    flex: 1;
-    text-align: center;
-    font-size: 12px;
-    color: var(--text-dim);
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    margin-right: 36px;
-  }
-
-  .terminal-body {
-    padding: 20px;
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
-    font-size: 13.5px;
-    line-height: 1.7;
-    height: 480px;
-    max-height: 480px;
-    overflow: hidden;
-  }
-
-  .t-line {
-    display: block;
-    white-space: pre;
-    opacity: 0;
-    transform: translateY(4px);
-    transition: opacity 0.15s, transform 0.15s;
-  }
-  .t-line.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .t-white  { color: #e2e8f0; }
-  .t-accent { color: #00d4aa; }
-  .t-red    { color: #f87171; }
-  .t-orange { color: #fb923c; }
-  .t-yellow { color: #fbbf24; }
-  .t-dim    { color: #4b5568; }
-  .t-green  { color: #4ade80; }
-  .t-bold   { font-weight: 700; }
-
-  .cursor {
-    display: inline-block;
-    width: 8px; height: 14px;
-    background: var(--accent);
-    vertical-align: text-bottom;
-    animation: blink 1s step-end infinite;
-  }
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-  }
-
-  /* ── TRUST BAR ──────────────────────────────────────────── */
-  .trust-bar {
-    background: var(--bg2);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    padding: 28px 40px;
-  }
-  .trust-bar-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    flex-wrap: wrap;
-  }
-  .trust-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-muted);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-  .trust-divider {
-    width: 1px; height: 28px;
-    background: var(--border);
-  }
-  .trust-tools {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .trust-tool {
-    background: var(--bg4);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 7px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-muted);
-    transition: all 0.2s;
-  }
-  .trust-tool:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  /* ── SECTIONS COMMON ────────────────────────────────────── */
-  section {
-    padding: 96px 40px;
-  }
-  .section-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-  .section-label {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 16px;
-  }
-  .section-title {
-    font-size: clamp(28px, 3.5vw, 44px);
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1.15;
-    margin-bottom: 16px;
-  }
-  .section-sub {
-    font-size: 17px;
-    color: var(--text-muted);
-    line-height: 1.7;
-    max-width: 580px;
-  }
-
-  /* ── CATCHES GRID ───────────────────────────────────────── */
-  #features { background: var(--bg); }
-
-  .catches-header {
-    margin-bottom: 48px;
-  }
-
-  .catches-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-  }
-
-  .catch-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 28px 24px;
-    transition: all 0.25s;
-    position: relative;
-    overflow: hidden;
-  }
-  .catch-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--accent);
-    opacity: 0;
-    transition: opacity 0.25s;
-  }
-  .catch-card:hover {
-    border-color: var(--border-accent);
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
-  }
-  .catch-card:hover::before { opacity: 1; }
-
-  .catch-icon {
-    font-size: 28px;
-    margin-bottom: 14px;
-    line-height: 1;
-  }
-  .catch-title {
-    font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    color: var(--text);
-  }
-  .catch-badge {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--accent);
-    background: var(--accent-dim);
-    border-radius: 4px;
-    padding: 2px 8px;
-    margin-bottom: 10px;
-    display: inline-block;
-  }
-  .catch-desc {
-    font-size: 13px;
-    color: var(--text-muted);
-    line-height: 1.6;
-  }
-
-  /* ── BREACH SECTION ─────────────────────────────────────── */
-  #breach {
-    background: var(--bg2);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .breach-box {
-    background: var(--bg3);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: var(--radius);
-    padding: 48px;
-    position: relative;
-    overflow: hidden;
-  }
-  .breach-box::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--red), #f97316);
-  }
-  .breach-quote-mark {
-    font-size: 80px;
-    line-height: 1;
-    color: rgba(239, 68, 68, 0.15);
-    font-family: Georgia, serif;
-    margin-bottom: -20px;
-  }
-  .breach-story {
-    font-size: clamp(17px, 2vw, 21px);
-    font-weight: 500;
-    color: var(--text);
-    line-height: 1.75;
-    margin-bottom: 32px;
-    position: relative;
-  }
-  .breach-story strong { color: var(--red); }
-
-  .breach-catch {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--accent-dim);
-    border: 1px solid var(--border-accent);
-    border-radius: var(--radius-sm);
-    padding: 16px 24px;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent);
-  }
-
-  /* ── HOW IT WORKS ───────────────────────────────────────── */
-  #how-it-works { background: var(--bg); }
-
-  .steps {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-    margin-top: 56px;
-    position: relative;
-  }
-  .steps::before {
-    content: '';
-    position: absolute;
-    top: 28px;
-    left: calc(16.67% + 20px);
-    right: calc(16.67% + 20px);
-    height: 1px;
-    background: linear-gradient(90deg, var(--accent), transparent 50%, var(--accent));
-    opacity: 0.3;
-  }
-
-  .step {
-    padding: 0 32px;
-    text-align: center;
-  }
-  .step-num {
-    width: 56px; height: 56px;
-    border-radius: 50%;
-    background: var(--accent-dim);
-    border: 2px solid var(--accent);
-    color: var(--accent);
-    font-size: 18px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-    position: relative;
-    z-index: 1;
-  }
-  .step-title {
-    font-size: 17px;
-    font-weight: 700;
-    margin-bottom: 12px;
-  }
-  .step-desc {
-    font-size: 14px;
-    color: var(--text-muted);
-    line-height: 1.6;
-    margin-bottom: 16px;
-  }
-  .step-code {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 12px 16px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 12px;
-    color: var(--accent);
-    text-align: left;
-    word-break: break-all;
-  }
-  .step-code .cmd-dollar { color: var(--text-muted); }
-
-  .local-badge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 48px;
-    padding: 14px 28px;
-    background: var(--accent-dim);
-    border: 1px solid var(--border-accent);
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--accent);
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  /* ── REPORT PREVIEW ─────────────────────────────────────── */
-  #report-preview {
-    background: var(--bg2);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .report-mockup {
-    background: #fff;
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.7);
-    margin-top: 48px;
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .report-cover {
-    background: #0f172a;
-    padding: 40px;
-    color: #fff;
-  }
-  .report-cover-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 36px;
-  }
-  .report-logo {
-    font-size: 18px;
-    font-weight: 700;
-    color: #fff;
-  }
-  .report-logo span { color: #60a5fa; }
-  .report-confidential {
-    font-size: 10px;
-    color: #64748b;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    border: 1px solid #1e2d45;
-    padding: 4px 10px;
-    border-radius: 4px;
-  }
-  .report-score-block {
-    display: flex;
-    align-items: flex-end;
-    gap: 24px;
-    flex-wrap: wrap;
-  }
-  .report-score-num {
-    font-size: 72px;
-    font-weight: 800;
-    line-height: 1;
-    color: #ef4444;
-    letter-spacing: -0.04em;
-  }
-  .report-score-denom {
-    font-size: 28px;
-    color: #475569;
-    margin-bottom: 10px;
-  }
-  .report-risk-badge {
-    background: #7f1d1d;
-    color: #fca5a5;
-    border: 1px solid #991b1b;
-    padding: 8px 20px;
-    border-radius: 6px;
-    font-size: 15px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    margin-bottom: 8px;
-  }
-  .report-title {
-    font-size: 13px;
-    color: #94a3b8;
-    margin-top: 8px;
-  }
-
-  .report-body {
-    padding: 32px 40px;
-    background: #fff;
-  }
-  .report-section-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #6b7280;
-    margin-bottom: 16px;
-  }
-  .report-findings {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .report-finding {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: #f9fafb;
-    border-radius: 8px;
-    border-left: 3px solid transparent;
-  }
-  .report-finding.critical { border-left-color: #ef4444; }
-  .report-finding.high     { border-left-color: #f97316; }
-  .report-finding-sev {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    padding: 3px 8px;
-    border-radius: 4px;
-    white-space: nowrap;
-  }
-  .sev-critical { background: #fef2f2; color: #ef4444; }
-  .sev-high     { background: #fff7ed; color: #f97316; }
-  .report-finding-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: #111827;
-    flex: 1;
-  }
-  .report-finding-file {
-    font-size: 11px;
-    color: #6b7280;
-    font-family: monospace;
-  }
-
-  /* ── VS SECTION ─────────────────────────────────────────── */
-  #compare { background: var(--bg); }
-
-  .vs-table {
-    margin-top: 48px;
-    border-radius: var(--radius);
-    overflow: hidden;
-    border: 1px solid var(--border);
-    max-width: 760px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .vs-header {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    background: var(--bg3);
-    border-bottom: 1px solid var(--border);
-  }
-  .vs-col-label {
-    padding: 16px 24px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    text-align: center;
-  }
-  .vs-col-label.theirs { color: var(--text-dim); }
-  .vs-col-label.ours   { color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 14px; }
-
-  .vs-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    border-bottom: 1px solid var(--border);
-    transition: background 0.2s;
-  }
-  .vs-row:last-child { border-bottom: none; }
-  .vs-row:hover { background: rgba(255,255,255,0.02); }
-
-  .vs-cell {
-    padding: 16px 24px;
-    font-size: 14px;
-    text-align: center;
-    color: var(--text-muted);
-  }
-  .vs-cell.ours {
-    color: var(--text);
-    font-weight: 600;
-    background: rgba(0, 212, 170, 0.04);
-  }
-  .vs-cell.theirs { color: var(--text-dim); }
-  .vs-checkmark { color: var(--accent); font-weight: 700; }
-  .vs-cross     { color: var(--text-dim); }
-
-  /* ── FINAL CTA ──────────────────────────────────────────── */
-  #cta {
-    background: linear-gradient(135deg, #0d1424 0%, #0a0f1a 100%);
-    border-top: 1px solid var(--border);
-    text-align: center;
-  }
-  .cta-inner {
-    max-width: 640px;
-    margin: 0 auto;
-  }
-  .cta-inner .section-title { margin-bottom: 24px; }
-  .cta-sub {
-    font-size: 15px;
-    color: var(--text-muted);
-    margin-top: 20px;
-    line-height: 1.6;
-  }
-  .cta-sub strong { color: var(--accent); }
-
-  /* ── FOOTER ─────────────────────────────────────────────── */
-  footer {
-    background: var(--bg2);
-    border-top: 1px solid var(--border);
-    padding: 40px;
-  }
-  .footer-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 24px;
-  }
-  .footer-brand {
-    font-size: 14px;
-    font-weight: 700;
-  }
-  .footer-brand span { color: var(--accent); }
-  .footer-meta {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 4px;
-  }
-  .footer-links {
-    display: flex;
-    gap: 24px;
-    align-items: center;
-  }
-  .footer-links a {
-    font-size: 13px;
-    color: var(--text-muted);
-    transition: color 0.2s;
-  }
-  .footer-links a:hover { color: var(--accent); }
-  .footer-right {
-    font-size: 12px;
-    color: var(--text-dim);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .footer-right::before {
-    content: '🔒';
-    font-size: 12px;
-  }
-
-  /* ── SCROLL ANIMATIONS ──────────────────────────────────── */
-  .fade-up {
-    opacity: 0;
-    transform: translateY(24px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-  }
-  .fade-up.in-view {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* ── WEB SCANNER ────────────────────────────────────────── */
-  #web-scanner {
-    background: var(--bg2);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    padding: 72px 40px;
-  }
-  .scanner-card {
-    max-width: 760px;
-    margin: 0 auto;
-    background: var(--bg3);
-    border: 1px solid var(--border-accent);
-    border-radius: var(--radius);
-    padding: 44px 48px;
-    position: relative;
-    overflow: hidden;
-  }
-  .scanner-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--accent), #00a8d6);
-  }
-  .scanner-headline {
-    font-size: clamp(22px, 3vw, 30px);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    margin-bottom: 8px;
-  }
-  .scanner-sub {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 28px;
-  }
-  .scanner-input-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 0;
-  }
-  .scanner-input {
-    flex: 1;
-    background: var(--bg4);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 14px 18px;
-    font-size: 14px;
-    color: var(--text);
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    outline: none;
-    transition: border-color 0.2s;
-    min-width: 0;
-  }
-  .scanner-input::placeholder { color: var(--text-dim); }
-  .scanner-input:focus { border-color: var(--accent); }
-
-  /* ── REPO HELP ──────────────────────────────────────────── */
-  .repo-help {
-    margin-top: 12px;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-  .repo-help summary {
-    list-style: none;
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--text-dim);
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 2px 0;
-    user-select: none;
-    transition: color 0.15s;
-  }
-  .repo-help summary::-webkit-details-marker { display: none; }
-  .repo-help summary:hover { color: var(--text-muted); }
-  .repo-help-chevron {
-    font-size: 10px;
-    transition: transform 0.2s;
-    display: inline-block;
-  }
-  .repo-help[open] .repo-help-chevron { transform: rotate(180deg); }
-  .repo-help-body {
-    margin-top: 10px;
-    background: var(--bg4);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-  .repo-help-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 11px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    font-size: 13px;
-  }
-  .repo-help-row:last-child { border-bottom: none; }
-  .repo-help-logo {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    flex-shrink: 0;
-    object-fit: contain;
-    background: rgba(255,255,255,0.04);
-  }
-  .repo-help-platform {
-    font-weight: 700;
-    color: var(--text);
-    min-width: 90px;
-    flex-shrink: 0;
-  }
-  .repo-help-tip {
-    color: var(--text-muted);
-    font-size: 12px;
-    line-height: 1.4;
-  }
-  .scanner-btn {
-    background: var(--accent);
-    color: #0a0f1a;
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 14px 28px;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: opacity 0.2s, transform 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  .scanner-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
-  .scanner-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-  /* Loading terminal */
-  .scan-loading {
-    display: none;
-    margin-top: 24px;
-    background: #050a14;
-    border: 1px solid rgba(0,212,170,0.15);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-  .scan-loading.active { display: block; }
-  .scan-loading-bar {
-    background: #0d1424;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-  }
-  .scan-loading-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-  }
-  .scan-loading-dot:nth-child(1) { background: #ff5f57; }
-  .scan-loading-dot:nth-child(2) { background: #febc2e; }
-  .scan-loading-dot:nth-child(3) { background: #28c840; }
-  .scan-loading-title {
-    flex: 1;
-    text-align: center;
-    font-size: 11px;
-    color: var(--text-dim);
-    font-family: monospace;
-    margin-right: 27px;
-  }
-  .scan-loading-body {
-    padding: 16px 18px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 12px;
-    line-height: 1.8;
-    min-height: 80px;
-  }
-  .scan-log-line {
-    display: block;
-    animation: slideIn 0.15s ease both;
-  }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(3px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .sl-dim    { color: #4b5568; }
-  .sl-accent { color: var(--accent); }
-  .sl-white  { color: #e2e8f0; }
-  .scan-cursor {
-    display: inline-block;
-    width: 7px; height: 13px;
-    background: var(--accent);
-    vertical-align: text-bottom;
-    animation: blink 1s step-end infinite;
-    margin-left: 2px;
-  }
-
-  /* Error */
-  .scan-error {
-    display: none;
-    margin-top: 20px;
-    background: rgba(239,68,68,0.08);
-    border: 1px solid rgba(239,68,68,0.25);
-    border-radius: var(--radius-sm);
-    padding: 14px 18px;
-    font-size: 14px;
-    color: #fca5a5;
-    display: none;
-    align-items: center;
-    gap: 10px;
-  }
-  .scan-error.active { display: flex; }
-
-  /* Results */
-  .scan-results {
-    display: none;
-    margin-top: 24px;
-  }
-  .scan-results.active { display: block; }
-
-  .download-report-row {
-    display: none;
-    justify-content: center;
-    margin-top: 28px;
-  }
-  .download-report-row.visible { display: flex; }
-  .download-report-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--accent);
-    color: #0a0f1a;
-    border: none;
-    border-radius: 8px;
-    padding: 13px 28px;
-    font-size: 14px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    letter-spacing: 0.01em;
-    transition: opacity 0.2s, transform 0.15s;
-  }
-  .download-report-btn:hover { opacity: 0.88; transform: translateY(-1px); }
-
-  .result-header {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    padding: 28px 32px;
-    background: var(--bg4);
-    border-radius: var(--radius-sm);
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 20px;
-  }
-  .result-score-num {
-    font-size: 64px;
-    font-weight: 800;
-    line-height: 1;
-    letter-spacing: -0.04em;
-    font-variant-numeric: tabular-nums;
-  }
-  .result-score-denom {
-    font-size: 24px;
-    color: var(--text-dim);
-    font-weight: 400;
-  }
-  .result-meta { flex: 1; min-width: 160px; }
-  .result-risk-badge {
-    display: inline-block;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 5px 14px;
-    border-radius: 5px;
-    margin-bottom: 8px;
-  }
-  .badge-low      { background: rgba(22,163,74,0.15);  color: #4ade80; border: 1px solid rgba(22,163,74,0.3); }
-  .badge-moderate { background: rgba(234,179,8,0.12);  color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
-  .badge-high     { background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
-  .badge-critical { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
-
-  .result-rating {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 4px;
-  }
-  .result-files {
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-  .result-clean {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 20px 28px;
-    background: rgba(22,163,74,0.08);
-    border: 1px solid rgba(22,163,74,0.25);
-    border-radius: var(--radius-sm);
-    margin-bottom: 20px;
-  }
-  .result-clean-icon { font-size: 32px; line-height: 1; }
-  .result-clean-text { font-size: 18px; font-weight: 700; color: #4ade80; }
-  .result-clean-sub  { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
-
-  .result-categories { display: flex; flex-direction: column; gap: 12px; }
-
-  .result-cat {
-    background: var(--bg4);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-  .result-cat-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s;
-  }
-  .result-cat-header:hover { background: rgba(255,255,255,0.03); }
-  .result-cat-name {
-    flex: 1;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .result-cat-count {
-    font-size: 12px;
-    font-weight: 700;
-    padding: 2px 10px;
-    border-radius: 10px;
-  }
-  .result-cat-chevron {
-    color: var(--text-dim);
-    font-size: 12px;
-    transition: transform 0.2s;
-  }
-  .result-cat.open .result-cat-chevron { transform: rotate(180deg); }
-
-  .result-cat-body {
-    display: none;
-    border-top: 1px solid var(--border);
-  }
-  .result-cat.open .result-cat-body { display: block; }
-
-  .result-finding {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: start;
-    gap: 10px 14px;
-    padding: 10px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    font-size: 13px;
-  }
-  .result-finding:last-child { border-bottom: none; }
-  .result-finding-type {
-    font-weight: 600;
-    color: var(--text);
-    grid-column: 2;
-  }
-  .result-finding-loc {
-    font-family: 'SF Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    grid-column: 2;
-    margin-top: -4px;
-  }
-  .result-finding-snippet {
-    font-family: 'SF Mono', monospace;
-    font-size: 11px;
-    color: #6b7280;
-    grid-column: 2;
-    margin-top: -2px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 400px;
-  }
-  .finding-sev {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    padding: 2px 8px;
-    border-radius: 4px;
-    white-space: nowrap;
-    grid-column: 1;
-    grid-row: 1;
-    align-self: center;
-  }
-
-  @media (max-width: 640px) {
-    #web-scanner { padding: 48px 16px; }
-    .scanner-card { padding: 28px 20px; }
-    .scanner-input-row { flex-direction: column; }
-    .scanner-btn { width: 100%; justify-content: center; }
-    .result-score-num { font-size: 48px; }
-    .result-finding-snippet { display: none; }
-  }
-
-  /* ── RESPONSIVE ─────────────────────────────────────────── */
-  @media (max-width: 900px) {
-    nav { padding: 0 20px; }
-
-    .nav-links { display: none; }
-    .nav-links.open {
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      top: 64px; left: 0; right: 0;
-      background: var(--bg2);
-      border-bottom: 1px solid var(--border);
-      padding: 20px;
-      gap: 16px;
-    }
-    .nav-links.open a { font-size: 16px; }
-    .nav-hamburger { display: flex; }
-
-    .hero {
-      grid-template-columns: 1fr;
-      padding: 100px 20px 60px;
-      gap: 48px;
-    }
-
-    .catches-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .steps {
-      grid-template-columns: 1fr;
-      gap: 32px;
-    }
-    .steps::before { display: none; }
-    .step { padding: 0; text-align: left; display: flex; flex-direction: column; align-items: flex-start; }
-    .step-num { margin: 0 0 16px; }
-
-    .trust-bar { padding: 20px; }
-    .trust-divider { display: none; }
-
-    section { padding: 64px 20px; }
-
-    .breach-box { padding: 28px 24px; }
-
-    .vs-col-label, .vs-cell { padding: 12px 12px; font-size: 13px; }
-
-    .footer-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
-    footer { padding: 32px 20px; }
-
-    .report-body { padding: 24px; }
-    .report-cover { padding: 28px; }
-    .report-score-num { font-size: 52px; }
-  }
-
-  @media (max-width: 600px) {
-    .catches-grid { grid-template-columns: 1fr; }
-    .hero-buttons { flex-direction: column; }
-    .hero-buttons a { text-align: center; justify-content: center; }
-    .report-mockup { margin-top: 32px; }
-    .vs-table { font-size: 12px; }
-    .vs-col-label, .vs-cell { padding: 10px 8px; }
-  }
+/* ── DESIGN SYSTEM ───────────────────────────────────────────────────── */
+:root {
+  --bg-base:      #050816;
+  --bg-elevated:  #0a1129;
+  --bg-card:      #0f1832;
+  --bg-input:     #131c3d;
+  --bg-glass:     rgba(15,24,50,0.6);
+
+  --border-subtle: rgba(148,163,184,0.08);
+  --border-default:rgba(148,163,184,0.12);
+  --border-bright: rgba(148,163,184,0.25);
+  --border-accent: rgba(96,165,250,0.4);
+
+  --text-primary:  #f1f5f9;
+  --text-secondary:#cbd5e1;
+  --text-muted:    #94a3b8;
+  --text-dim:      #64748b;
+
+  --brand-blue:        #3b82f6;
+  --brand-blue-bright: #60a5fa;
+  --brand-cyan:        #22d3ee;
+  --brand-violet:      #a855f7;
+  --brand-pink:        #ec4899;
+
+  --success:      #10b981;
+  --success-glow: rgba(16,185,129,0.3);
+  --warning:      #f59e0b;
+  --warning-glow: rgba(245,158,11,0.3);
+  --danger:       #ef4444;
+  --danger-glow:  rgba(239,68,68,0.3);
+
+  --gradient-hero:      radial-gradient(ellipse at top, rgba(59,130,246,0.15), transparent 60%);
+  --gradient-mesh:      linear-gradient(135deg, rgba(34,211,238,0.1) 0%, rgba(168,85,247,0.1) 50%, rgba(236,72,153,0.1) 100%);
+  --gradient-text:      linear-gradient(135deg, #60a5fa 0%, #a855f7 50%, #ec4899 100%);
+  --gradient-button:    linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --gradient-card-glow: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(168,85,247,0.05));
+
+  --glow-blue:      0 0 40px rgba(59,130,246,0.3);
+  --glow-violet:    0 0 60px rgba(168,85,247,0.25);
+  --shadow-card:    0 8px 32px rgba(0,0,0,0.4);
+  --shadow-elevated:0 20px 60px rgba(0,0,0,0.5);
+
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Menlo', monospace;
+}
+
+/* ── BASE ────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg-base);
+  color:var(--text-primary);
+  font-family:var(--font-display);
+  font-size:16px;
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+a{color:inherit;text-decoration:none;}
+img{display:block;max-width:100%;}
+button{font-family:var(--font-display);cursor:pointer;}
+
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg-base);}
+::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text-dim);}
+
+/* ── KEYFRAMES ───────────────────────────────────────────────────────── */
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.4);}
+  50%{box-shadow:0 0 0 6px rgba(16,185,129,0);}
+}
+@keyframes floatCard{
+  0%,100%{transform:perspective(1000px) rotateY(-8deg) rotateX(4deg) translateY(0);}
+  50%{transform:perspective(1000px) rotateY(-8deg) rotateX(4deg) translateY(-10px);}
+}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+@keyframes dotblink{0%,80%,100%{background:var(--border-bright);}40%{background:var(--brand-blue-bright);}}
+@keyframes marquee{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+@keyframes spinSlow{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes fadeUpIn{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+@keyframes heroRingDraw{
+  from{stroke-dashoffset:502.65;}
+  to{stroke-dashoffset:140.74;}
+}
+@keyframes demoRingDraw{
+  from{stroke-dashoffset:251.33;}
+  to{stroke-dashoffset:70.37;}
+}
+
+/* ── UTILITIES ───────────────────────────────────────────────────────── */
+.gradient-text{
+  background:var(--gradient-text);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.fade-up{opacity:0;transform:translateY(24px);transition:opacity 0.6s ease,transform 0.6s ease;}
+.fade-up.visible{opacity:1;transform:translateY(0);}
+.section-eyebrow{
+  font-family:var(--font-mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.15em;
+  color:var(--brand-blue-bright);
+  margin-bottom:16px;
+}
+.centered{text-align:center;}
+
+/* ── NAVIGATION ──────────────────────────────────────────────────────── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(10,17,41,0.7);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border-subtle);
+}
+.nav-inner{
+  max-width:1280px;margin:0 auto;
+  padding:0 32px;height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-logo{
+  font-family:var(--font-display);
+  font-size:20px;font-weight:700;
+  letter-spacing:-0.02em;color:var(--text-primary);
+}
+.logo-gradient{
+  background:var(--gradient-text);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.nav-links{
+  display:flex;align-items:center;gap:32px;list-style:none;
+}
+.nav-links a{
+  font-size:14px;font-weight:500;color:var(--text-muted);
+  position:relative;transition:color 0.2s;
+}
+.nav-links a::after{
+  content:'';position:absolute;bottom:-4px;left:0;right:0;
+  height:1px;background:var(--brand-blue-bright);
+  transform:scaleX(0);transform-origin:left;
+  transition:transform 0.2s;
+}
+.nav-links a:hover{color:var(--text-primary);}
+.nav-links a:hover::after{transform:scaleX(1);}
+.nav-actions{display:flex;align-items:center;gap:10px;}
+.btn-ghost{
+  font-size:14px;font-weight:500;color:var(--text-secondary);
+  background:transparent;border:1px solid var(--border-default);
+  padding:8px 16px;border-radius:8px;transition:all 0.2s;
+}
+.btn-ghost:hover{background:var(--bg-elevated);border-color:var(--border-bright);}
+.btn-primary{
+  font-size:14px;font-weight:600;color:#fff;
+  background:var(--gradient-button);
+  padding:8px 20px;border-radius:8px;
+  box-shadow:var(--glow-blue);
+  transition:all 0.2s;border:none;cursor:pointer;
+}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 0 60px rgba(59,130,246,0.5);}
+.nav-hamburger{
+  display:none;flex-direction:column;gap:5px;
+  cursor:pointer;padding:4px;background:none;border:none;
+}
+.nav-hamburger span{display:block;width:20px;height:1.5px;background:var(--text-muted);border-radius:2px;}
+.nav-mobile{
+  display:none;flex-direction:column;
+  background:var(--bg-elevated);border-bottom:1px solid var(--border-subtle);
+}
+.nav-mobile.open{display:flex;}
+.nav-mobile a{
+  padding:13px 32px;font-size:14px;color:var(--text-muted);
+  border-bottom:1px solid var(--border-subtle);transition:color 0.15s;
+}
+.nav-mobile a:last-child{border-bottom:none;}
+.nav-mobile a:hover{color:var(--text-primary);}
+
+/* ── HERO ────────────────────────────────────────────────────────────── */
+.hero-section{
+  position:relative;overflow:hidden;
+  padding:120px 32px 80px;
+}
+.hero-section::before{
+  content:'';position:absolute;
+  top:-200px;left:50%;transform:translateX(-50%);
+  width:900px;height:700px;
+  background:radial-gradient(ellipse at center,rgba(59,130,246,0.12),transparent 65%);
+  pointer-events:none;z-index:0;
+}
+.hero-section::after{
+  content:'';position:absolute;inset:0;
+  background:var(--gradient-mesh);opacity:0.3;
+  pointer-events:none;z-index:0;
+}
+.hero-inner{max-width:1280px;margin:0 auto;position:relative;z-index:1;}
+.hero-grid{
+  display:grid;grid-template-columns:60fr 40fr;
+  gap:64px;align-items:start;
+}
+.hero-left{display:flex;flex-direction:column;align-items:flex-start;}
+
+/* Status pill */
+.status-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px;margin-bottom:24px;
+  background:var(--bg-glass);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--border-bright);border-radius:999px;
+}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--success);flex-shrink:0;
+  animation:pulse 2s ease-in-out infinite;
+}
+.status-text{
+  font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);
+}
+
+/* Headline */
+.hero-h1{
+  font-size:72px;font-weight:800;line-height:1.05;
+  letter-spacing:-0.04em;color:var(--text-primary);
+  margin-bottom:24px;
+}
+.hero-sub{
+  font-size:19px;font-weight:400;line-height:1.5;
+  color:var(--text-secondary);max-width:560px;
+  margin-bottom:40px;
+}
+
+/* Scanner input (hero) */
+.scanner-outer{
+  max-width:560px;width:100%;
+  position:relative;margin-bottom:0;
+}
+.scanner-glow-bg{
+  position:absolute;bottom:-20px;left:10%;right:10%;
+  height:40px;
+  background:var(--gradient-button);
+  filter:blur(40px);opacity:0.3;
+  border-radius:50%;z-index:-1;
+  transition:opacity 0.3s;
+}
+.scanner-outer:focus-within .scanner-glow-bg{opacity:0.55;}
+.scanner-input-container{
+  background:var(--bg-glass);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--border-bright);
+  border-radius:12px;padding:6px;
+  display:flex;align-items:center;
+  transition:all 0.3s;
+}
+.scanner-input-container:focus-within{
+  border-color:var(--border-accent);
+  box-shadow:0 0 0 3px rgba(59,130,246,0.1),var(--glow-blue);
+}
+.lock-icon{
+  color:var(--brand-blue-bright);flex-shrink:0;
+  margin:0 10px;
+}
+.scanner-input{
+  flex:1;background:transparent;border:none;outline:none;
+  font-family:var(--font-mono);font-size:15px;
+  color:var(--text-primary);padding:12px 12px;min-width:0;
+}
+.scanner-input::placeholder{color:var(--text-dim);}
+.scanner-btn{
+  background:var(--gradient-button);color:#fff;border:none;
+  padding:10px 24px;border-radius:8px;
+  font-size:14px;font-weight:600;
+  box-shadow:var(--glow-blue);
+  transition:all 0.2s;white-space:nowrap;flex-shrink:0;
+  display:flex;align-items:center;gap:4px;
+}
+.scanner-btn:hover{transform:translateY(-1px);box-shadow:0 0 50px rgba(59,130,246,0.5);}
+.scanner-btn:disabled{opacity:0.7;cursor:not-allowed;transform:none;}
+.btn-arrow{transition:transform 0.2s;}
+.scanner-btn:hover .btn-arrow{transform:translateX(4px);}
+
+/* Chips */
+.chips-row{
+  display:flex;align-items:center;gap:8px;
+  flex-wrap:wrap;margin-top:16px;
+}
+.chips-label{font-size:12px;color:var(--text-dim);}
+.chip{
+  font-family:var(--font-mono);font-size:12px;
+  padding:4px 10px;
+  background:var(--bg-glass);
+  border:1px solid var(--border-default);
+  border-radius:4px;color:var(--text-secondary);
+  cursor:pointer;
+  transition:all 0.15s;
+  backdrop-filter:blur(8px);
+}
+.chip:hover{
+  background:var(--bg-elevated);
+  border-color:var(--border-bright);
+  color:var(--text-primary);
+}
+
+/* Trust signals */
+.hero-trust{
+  font-family:var(--font-mono);font-size:12px;
+  color:var(--text-dim);margin-top:56px;
+}
+
+/* ── SCAN STATES (PRESERVED CLASS NAMES) ─────────────────────────────── */
+.scan-states{width:100%;margin-top:24px;}
+
+.scan-loading{display:none;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:10px;overflow:hidden;}
+.scan-loading.active{display:block;}
+.scan-loading-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px;background:var(--bg-input);
+  border-bottom:1px solid var(--border-default);
+}
+.scan-loading-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--border-bright);
+  animation:dotblink 1.4s infinite;
+}
+.scan-loading-dot:nth-child(2){animation-delay:0.2s;}
+.scan-loading-dot:nth-child(3){animation-delay:0.4s;}
+.scan-loading-title{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);flex:1;}
+.scan-loading-body{
+  padding:16px;font-family:var(--font-mono);
+  font-size:12px;line-height:2;
+  min-height:160px;display:flex;flex-direction:column-reverse;
+}
+.scan-log-line{display:block;}
+.sl-white{color:var(--text-muted);}
+.sl-accent{color:var(--brand-blue-bright);}
+.sl-dim{color:var(--text-dim);}
+.scan-cursor{
+  display:inline-block;width:7px;height:13px;
+  background:var(--brand-blue-bright);vertical-align:text-bottom;
+  animation:blink 1s step-end infinite;
+}
+
+.scan-error{
+  display:none;align-items:center;gap:10px;
+  background:rgba(239,68,68,0.08);
+  border:1px solid rgba(239,68,68,0.3);
+  border-radius:10px;padding:14px 18px;
+  font-size:14px;color:var(--danger);
+}
+.scan-error.active{display:flex;}
+
+.scan-results{display:none;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:10px;overflow:hidden;}
+.scan-results.active{display:block;}
+
+.result-header{
+  display:flex;align-items:center;gap:20px;
+  padding:20px 24px;border-bottom:1px solid var(--border-default);
+  background:var(--bg-input);flex-wrap:wrap;
+}
+.result-score-num{
+  font-family:var(--font-mono);font-size:48px;
+  font-weight:700;line-height:1;letter-spacing:-0.02em;
+}
+.result-score-denom{font-family:var(--font-mono);font-size:20px;color:var(--text-dim);}
+.result-meta{display:flex;flex-direction:column;gap:4px;}
+.result-risk-badge{
+  display:inline-block;font-family:var(--font-mono);
+  font-size:11px;font-weight:700;letter-spacing:0.08em;
+  padding:3px 10px;border-radius:4px;width:fit-content;
+}
+.badge-low     {background:rgba(16,185,129,0.12);color:#10b981;border:1px solid rgba(16,185,129,0.3);}
+.badge-moderate{background:rgba(245,158,11,0.12);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);}
+.badge-high    {background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.3);}
+.badge-critical{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4);}
+.result-rating{font-size:13px;color:var(--text-muted);}
+.result-files{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);}
+
+.result-clean{
+  display:none;align-items:center;gap:14px;
+  padding:28px 24px;color:var(--success);
+}
+.result-clean-icon{font-size:28px;}
+.result-clean-text{font-size:16px;font-weight:600;}
+.result-clean-sub{font-size:13px;color:var(--text-muted);margin-top:2px;}
+
+.result-categories{padding:16px;display:flex;flex-direction:column;gap:8px;}
+.result-cat{border:1px solid var(--border-default);border-radius:6px;overflow:hidden;}
+.result-cat-header{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;background:var(--bg-input);
+  cursor:pointer;user-select:none;transition:background 0.15s;
+}
+.result-cat-header:hover{background:rgba(26,39,64,0.9);}
+.result-cat-name{font-size:13px;font-weight:600;flex:1;color:var(--text-primary);}
+.result-cat-count{
+  font-family:var(--font-mono);font-size:11px;
+  font-weight:700;padding:3px 10px;border-radius:4px;
+}
+.result-cat-chevron{font-size:11px;color:var(--text-dim);transition:transform 0.2s;}
+.result-cat.open .result-cat-chevron{transform:rotate(180deg);}
+.result-cat-body{display:none;border-top:1px solid var(--border-default);}
+.result-cat.open .result-cat-body{display:block;}
+.result-finding{
+  padding:12px 16px;border-bottom:1px solid var(--border-subtle);
+  display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;
+}
+.result-finding:last-of-type{border-bottom:none;}
+.finding-sev{
+  font-family:var(--font-mono);font-size:10px;
+  font-weight:700;padding:2px 7px;border-radius:3px;
+  white-space:nowrap;flex-shrink:0;
+}
+.result-finding-type{font-size:13px;font-weight:500;color:var(--text-primary);}
+.result-finding-loc{
+  font-family:var(--font-mono);font-size:11px;
+  color:var(--text-dim);width:100%;margin-top:2px;
+}
+.result-finding-snippet{
+  font-family:var(--font-mono);font-size:11px;
+  color:var(--text-dim);width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* Fix Prompt Box (PRESERVED CLASS NAMES) */
+.fix-prompt-box{
+  margin:0 16px 12px;
+  background:var(--bg-card);
+  border:1px solid var(--border-accent);
+  border-left:3px solid var(--brand-blue-bright);
+  border-radius:0 10px 10px 0;overflow:hidden;
+}
+.fix-prompt-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;
+  background:rgba(59,130,246,0.06);
+  border-bottom:1px solid var(--border-accent);
+}
+.fix-prompt-label{
+  font-family:var(--font-mono);font-size:10px;font-weight:700;
+  color:var(--brand-blue-bright);
+  text-transform:uppercase;letter-spacing:0.1em;
+}
+.fix-prompt-copy{
+  font-family:var(--font-display);font-size:11px;font-weight:600;
+  color:var(--brand-blue-bright);
+  background:var(--bg-input);
+  border:1px solid var(--border-accent);
+  border-radius:6px;padding:4px 12px;
+  cursor:pointer;transition:all 0.15s;
+}
+.fix-prompt-copy:hover{background:var(--border-accent);color:#fff;}
+.fix-prompt-text{
+  font-family:var(--font-mono);font-size:11px;
+  line-height:1.7;color:#93b4d4;
+  padding:12px 14px;white-space:pre-wrap;
+  word-break:break-word;margin:0;
+}
+.fix-prompt-hint{
+  font-family:var(--font-mono);font-size:10px;
+  color:var(--text-dim);padding:6px 14px 10px;
+}
+
+/* Download row */
+.download-report-row{display:none;padding:16px;border-top:1px solid var(--border-default);}
+.download-report-row.visible{display:flex;justify-content:center;}
+.download-report-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;color:var(--text-muted);
+  border:1px solid var(--border-bright);
+  padding:10px 20px;border-radius:8px;
+  font-size:13px;font-weight:500;cursor:pointer;
+  transition:all 0.15s;
+}
+.download-report-btn:hover{border-color:var(--brand-blue-bright);color:var(--brand-blue-bright);}
+
+/* ── HERO CARD VISUAL (right column) ─────────────────────────────────── */
+.hero-right{position:relative;}
+.hero-card-wrapper{
+  position:relative;
+  animation:floatCard 6s ease-in-out infinite;
+}
+.hero-card-wrapper:hover{animation-play-state:paused;}
+.hero-card-glow{
+  position:absolute;inset:-20px;
+  background:var(--gradient-card-glow);
+  filter:blur(60px);opacity:0.6;
+  border-radius:24px;z-index:-1;
+}
+.hero-deco-gear{
+  position:absolute;top:-20px;left:-20px;
+  color:var(--brand-cyan);opacity:0.7;
+  animation:spinSlow 12s linear infinite;
+}
+.hero-fix-chip{
+  position:absolute;bottom:-16px;right:-8px;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 14px;
+  background:var(--bg-glass);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--border-accent);
+  border-radius:999px;
+  font-family:var(--font-mono);font-size:11px;color:var(--brand-blue-bright);
+  z-index:2;
+}
+.hero-card{
+  background:var(--bg-card);
+  border:1px solid var(--border-bright);
+  border-radius:16px;padding:20px;
+  box-shadow:var(--shadow-elevated);
+  min-width:280px;
+}
+.card-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:16px;
+}
+.card-label{
+  font-family:var(--font-mono);font-size:11px;
+  text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);
+}
+.card-dots{display:flex;gap:6px;}
+.dot{width:10px;height:10px;border-radius:50%;}
+.dot.red{background:#ef4444;}
+.dot.yellow{background:#f59e0b;}
+.dot.green{background:#10b981;}
+.card-repo{margin-bottom:20px;}
+.card-cmd{
+  font-family:var(--font-mono);font-size:12px;
+  color:var(--text-secondary);word-break:break-all;
+}
+.card-meta-line{
+  font-family:var(--font-mono);font-size:10px;
+  color:var(--text-dim);margin-top:4px;
+}
+.card-score-area{display:flex;justify-content:center;margin-bottom:16px;}
+.score-svg{filter:drop-shadow(0 0 20px rgba(59,130,246,0.3));}
+.hero-score-ring{
+  stroke-dasharray:502.65;
+  stroke-dashoffset:502.65;
+}
+.hero-score-ring.animate{
+  animation:heroRingDraw 1.5s cubic-bezier(0.4,0,0.2,1) 0.5s forwards;
+}
+.card-findings{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.card-finding{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;
+  background:var(--bg-elevated);
+  border-radius:8px;font-size:12px;
+}
+.finding-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.finding-dot.red-dot{background:var(--danger);}
+.finding-dot.orange-dot{background:var(--warning);}
+.finding-dot.yellow-dot{background:#f59e0b;}
+.finding-sev-lbl{
+  font-family:var(--font-mono);font-size:10px;font-weight:700;
+  color:var(--danger);letter-spacing:0.05em;flex-shrink:0;
+}
+.finding-sev-lbl.warn{color:var(--warning);}
+.finding-text{color:var(--text-secondary);flex:1;font-size:12px;}
+.finding-fix{
+  font-family:var(--font-mono);font-size:11px;
+  color:var(--brand-blue-bright);flex-shrink:0;
+}
+.card-footer-link{text-align:center;}
+.card-view-link{
+  font-family:var(--font-mono);font-size:12px;
+  color:var(--brand-blue-bright);
+  transition:opacity 0.2s;
+}
+.card-view-link:hover{opacity:0.7;}
+
+/* ── LOGOS STRIP ──────────────────────────────────────────────────────── */
+.logos-section{padding:64px 0;background:var(--bg-base);}
+.logos-inner{max-width:1280px;margin:0 auto;padding:0 32px;}
+.logos-eyebrow{
+  font-family:var(--font-mono);font-size:11px;
+  text-transform:uppercase;letter-spacing:0.15em;
+  color:var(--text-dim);text-align:center;margin-bottom:32px;
+}
+.logos-wrapper{
+  position:relative;overflow:hidden;
+  mask-image:linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  -webkit-mask-image:linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+.logos-track{
+  display:flex;align-items:center;gap:0;
+  width:max-content;
+  animation:marquee 60s linear infinite;
+}
+.logos-track:hover{animation-play-state:paused;}
+.logo-item{
+  font-family:var(--font-mono);font-size:14px;
+  color:var(--text-muted);opacity:0.6;
+  letter-spacing:-0.01em;
+  padding:0 32px;
+  white-space:nowrap;
+  transition:opacity 0.2s,color 0.2s;
+}
+.logo-item:hover{opacity:1;color:var(--text-primary);}
+
+/* ── LIVE SCAN DEMO ───────────────────────────────────────────────────── */
+.demo-section{
+  padding:120px 32px;background:var(--bg-base);
+  position:relative;overflow:hidden;
+}
+.demo-section::before{
+  content:'';position:absolute;inset:0;
+  background:var(--gradient-mesh);opacity:0.4;pointer-events:none;
+}
+.demo-inner{max-width:1280px;margin:0 auto;position:relative;z-index:1;}
+.demo-heading{
+  font-size:56px;font-weight:800;line-height:1.1;
+  letter-spacing:-0.03em;color:var(--text-primary);
+  max-width:800px;margin:0 auto;text-align:center;margin-bottom:16px;
+}
+.demo-sub{
+  font-size:18px;font-weight:400;color:var(--text-secondary);
+  max-width:600px;margin:0 auto 56px;text-align:center;line-height:1.6;
+}
+.demo-panel{
+  background:var(--bg-card);
+  border:1px solid var(--border-bright);
+  border-radius:16px;overflow:hidden;
+  box-shadow:var(--shadow-elevated),var(--glow-blue);
+}
+.demo-panel-header{
+  background:var(--bg-input);padding:12px 20px;
+  border-bottom:1px solid var(--border-default);
+  display:flex;align-items:center;gap:16px;
+}
+.demo-traffic-lights{display:flex;gap:6px;}
+.demo-tl{width:10px;height:10px;border-radius:50%;}
+.demo-tl.red{background:#ef4444;}
+.demo-tl.yellow{background:#f59e0b;}
+.demo-tl.green{background:#10b981;}
+.demo-panel-title{
+  font-family:var(--font-mono);font-size:12px;color:var(--text-muted);
+  flex:1;text-align:center;
+}
+.demo-panel-body{display:grid;grid-template-columns:1fr 1fr;}
+.demo-terminal{
+  padding:24px;font-family:var(--font-mono);font-size:13px;
+  line-height:1.7;background:var(--bg-card);
+  border-right:1px solid var(--border-default);
+  min-height:360px;
+}
+.term-line{display:block;margin-bottom:2px;}
+.term-cmd{color:var(--text-primary);}
+.term-ok{color:var(--success);}
+.term-err{color:var(--danger);}
+.term-dim{color:var(--text-dim);}
+.term-bar{color:var(--brand-blue-bright);}
+.term-score{
+  color:var(--brand-blue-bright);font-weight:600;font-size:14px;
+}
+.term-empty{display:block;height:1em;}
+.demo-report{
+  padding:32px;background:var(--bg-elevated);
+  display:flex;flex-direction:column;gap:20px;
+}
+.demo-report-heading{
+  font-size:16px;font-weight:700;color:var(--text-primary);
+}
+.demo-score-area{display:flex;justify-content:center;}
+.demo-score-svg{filter:drop-shadow(0 0 12px rgba(59,130,246,0.25));}
+.demo-score-ring{
+  stroke-dasharray:251.33;stroke-dashoffset:251.33;
+}
+.demo-score-ring.animate{
+  animation:demoRingDraw 1.5s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+.demo-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.demo-metric{
+  background:var(--bg-card);border:1px solid var(--border-default);
+  border-radius:8px;padding:10px 8px;text-align:center;
+}
+.demo-metric-num{
+  font-family:var(--font-mono);font-size:20px;font-weight:700;
+  color:var(--text-primary);
+}
+.demo-metric-num.c{color:var(--danger);}
+.demo-metric-num.h{color:var(--warning);}
+.demo-metric-num.m{color:#f59e0b;}
+.demo-metric-lbl{
+  font-family:var(--font-mono);font-size:9px;
+  color:var(--text-dim);text-transform:uppercase;
+  letter-spacing:0.05em;margin-top:2px;
+}
+.demo-findings{display:flex;flex-direction:column;gap:6px;}
+.demo-finding{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;
+  background:var(--bg-card);border-radius:8px;
+}
+.demo-sev-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.demo-sev-dot.crit{background:var(--danger);}
+.demo-sev-dot.high{background:var(--warning);}
+.demo-finding-text{font-size:12px;color:var(--text-secondary);flex:1;}
+.demo-finding-chev{color:var(--text-dim);font-size:12px;}
+.demo-fix-block{
+  background:var(--bg-input);
+  border:1px solid var(--border-accent);
+  border-radius:10px;overflow:hidden;
+}
+.demo-fix-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;
+  background:rgba(59,130,246,0.08);
+  border-bottom:1px solid var(--border-accent);
+}
+.demo-fix-label{
+  font-family:var(--font-mono);font-size:10px;font-weight:700;
+  color:var(--brand-blue-bright);
+  text-transform:uppercase;letter-spacing:0.1em;
+}
+.demo-fix-copy-btn{
+  font-size:11px;font-weight:600;color:var(--brand-blue-bright);
+  background:var(--bg-input);border:1px solid var(--border-accent);
+  border-radius:6px;padding:4px 12px;cursor:pointer;
+}
+.demo-fix-body{
+  font-family:var(--font-mono);font-size:11px;line-height:1.7;
+  color:#93b4d4;padding:12px 14px;
+}
+.demo-fix-hint{
+  font-family:var(--font-mono);font-size:10px;
+  color:var(--text-dim);padding:4px 14px 10px;
+}
+
+/* ── FEATURE CARDS ────────────────────────────────────────────────────── */
+.features-section{padding:120px 32px;}
+.features-inner{max-width:1280px;margin:0 auto;}
+.features-heading{
+  font-size:56px;font-weight:800;line-height:1.1;
+  letter-spacing:-0.03em;text-align:center;
+  max-width:800px;margin:0 auto 16px;
+}
+.features-sub{
+  font-size:18px;color:var(--text-secondary);
+  max-width:600px;margin:0 auto 64px;
+  text-align:center;line-height:1.6;
+}
+.features-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:16px;
+}
+.feature-card{
+  background:var(--bg-elevated);
+  border:1px solid var(--border-default);
+  border-radius:16px;padding:28px;
+  position:relative;overflow:hidden;
+  transition:all 0.3s;
+}
+.feature-card::before{
+  content:'';position:absolute;inset:0;
+  background:var(--gradient-card-glow);
+  opacity:0;transition:opacity 0.3s;
+}
+.feature-card:hover::before{opacity:1;}
+.feature-card:hover{
+  border-color:var(--border-bright);
+  transform:translateY(-4px);
+  box-shadow:var(--shadow-card),var(--glow-blue);
+}
+.feature-icon-wrap{
+  width:44px;height:44px;border-radius:10px;
+  background:var(--gradient-button);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px rgba(59,130,246,0.3);
+  margin-bottom:20px;position:relative;z-index:1;
+}
+.feature-icon-wrap i{width:22px;height:22px;color:#fff;stroke-width:2;}
+.feature-title{
+  font-size:17px;font-weight:700;color:var(--text-primary);
+  margin-bottom:8px;position:relative;z-index:1;
+}
+.feature-desc{
+  font-size:14px;color:var(--text-muted);line-height:1.55;
+  margin-bottom:16px;position:relative;z-index:1;
+}
+.feature-snippet{
+  background:var(--bg-base);
+  border:1px solid var(--border-subtle);
+  border-radius:6px;padding:10px 12px;
+  position:relative;z-index:1;overflow:hidden;
+}
+.feature-snippet code{
+  font-family:var(--font-mono);font-size:11px;
+  color:var(--text-secondary);
+  white-space:pre;display:block;
+  overflow:hidden;text-overflow:ellipsis;
+}
+
+/* ── EXECUTIVE REPORT SECTION ────────────────────────────────────────── */
+.report-section{
+  padding:120px 32px;
+  position:relative;overflow:hidden;
+}
+.report-section::before{
+  content:'';position:absolute;
+  top:50%;right:-200px;transform:translateY(-50%);
+  width:600px;height:600px;
+  background:radial-gradient(ellipse, rgba(168,85,247,0.12), transparent 70%);
+  pointer-events:none;
+}
+.report-inner{
+  max-width:1280px;margin:0 auto;
+  display:grid;grid-template-columns:60fr 40fr;
+  gap:64px;align-items:center;
+  position:relative;z-index:1;
+}
+.report-eyebrow{
+  font-family:var(--font-mono);font-size:11px;
+  text-transform:uppercase;letter-spacing:0.15em;
+  color:var(--brand-violet);margin-bottom:16px;
+}
+.report-heading{
+  font-size:52px;font-weight:800;line-height:1.1;
+  letter-spacing:-0.03em;margin-bottom:0;
+}
+.report-sub{
+  font-size:18px;color:var(--text-secondary);
+  line-height:1.6;max-width:480px;margin-top:24px;
+}
+.report-features{margin-top:40px;display:flex;flex-direction:column;gap:0;}
+.report-feat-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px 0;border-bottom:1px solid var(--border-subtle);
+}
+.report-feat-item:last-of-type{border-bottom:none;}
+.report-feat-check{
+  color:var(--success);flex-shrink:0;margin-top:2px;
+  filter:drop-shadow(0 0 6px var(--success-glow));
+}
+.report-feat-text{font-size:15px;color:var(--text-secondary);line-height:1.5;}
+.report-cta-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  margin-top:32px;
+  background:var(--gradient-button);color:#fff;
+  padding:12px 24px;border-radius:8px;
+  font-size:14px;font-weight:600;
+  box-shadow:var(--glow-blue);
+  transition:all 0.2s;border:none;cursor:pointer;
+}
+.report-cta-btn:hover{transform:translateY(-1px);box-shadow:0 0 50px rgba(59,130,246,0.5);}
+.report-visual{position:relative;}
+.report-doc-glow{
+  position:absolute;inset:-40px;
+  background:radial-gradient(ellipse, rgba(168,85,247,0.2), transparent 70%);
+  filter:blur(40px);z-index:-1;
+}
+.report-doc{
+  background:#fff;color:#111827;
+  border-radius:12px;
+  box-shadow:var(--shadow-elevated);
+  overflow:hidden;
+  transform:perspective(1200px) rotateY(8deg) rotateX(2deg) scale(1.02);
+  transition:transform 0.4s;
+}
+.report-doc:hover{transform:perspective(1200px) rotateY(3deg) rotateX(1deg) scale(1.02);}
+.doc-header{
+  background:#0f172a;padding:28px;color:#fff;
+}
+.doc-logo{font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.02em;}
+.doc-logo span{color:#60a5fa;}
+.doc-version{font-size:10px;color:#64748b;letter-spacing:0.05em;margin-top:2px;}
+.doc-header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}
+.doc-confidential{
+  font-size:10px;color:#94a3b8;letter-spacing:0.1em;
+  text-transform:uppercase;border:1px solid #334155;
+  padding:3px 10px;border-radius:4px;
+}
+.doc-title{font-size:20px;font-weight:700;margin-bottom:4px;}
+.doc-subtitle{font-size:12px;color:#94a3b8;}
+.doc-meta{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+  border-top:1px solid #1e293b;padding-top:20px;margin-top:16px;
+}
+.doc-meta-label{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;}
+.doc-meta-value{font-size:12px;color:#e2e8f0;font-weight:500;}
+.doc-body{padding:20px;}
+.doc-section-label{
+  font-size:9px;font-weight:700;color:#6b7280;
+  text-transform:uppercase;letter-spacing:0.1em;
+  margin-bottom:10px;padding-bottom:6px;
+  border-bottom:2px solid #f3f4f6;
+}
+.doc-exec-box{
+  background:#fef9c3;border:1px solid #fbbf24;
+  border-left:4px solid #fbbf24;
+  border-radius:4px;padding:10px 14px;margin-bottom:14px;
+}
+.doc-exec-text{font-size:11px;color:#374151;line-height:1.5;}
+.doc-score-row{display:grid;grid-template-columns:80px 1fr;gap:12px;margin-bottom:12px;}
+.doc-score-card{
+  background:#0f172a;border-radius:6px;
+  padding:14px 10px;text-align:center;
+}
+.doc-score-num{font-size:36px;font-weight:700;color:#fbbf24;line-height:1;}
+.doc-score-denom{font-size:12px;color:#475569;}
+.doc-score-lbl{font-size:8px;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;}
+.doc-metrics-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.doc-metric-mini{
+  border:1px solid #e5e7eb;border-radius:4px;
+  padding:8px 4px;text-align:center;
+}
+.doc-metric-num{font-size:18px;font-weight:700;}
+.doc-metric-lbl{font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.04em;}
+.doc-findings-row{display:flex;flex-direction:column;gap:4px;}
+.doc-finding-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:4px;font-size:10px;font-weight:600;
+  font-family:monospace;
+}
+
+/* ── DOORWAYS ─────────────────────────────────────────────────────────── */
+.doorways-section{padding:120px 32px;}
+.doorways-inner{max-width:1280px;margin:0 auto;}
+.doorways-heading{
+  font-size:52px;font-weight:800;line-height:1.1;
+  letter-spacing:-0.03em;text-align:center;
+  margin-bottom:16px;
+}
+.doorways-sub{
+  font-size:18px;color:var(--text-secondary);
+  text-align:center;max-width:600px;
+  margin:0 auto 64px;line-height:1.6;
+}
+.doorways-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.doorway-card{
+  background:var(--bg-elevated);
+  border:1px solid var(--border-default);
+  border-radius:20px;padding:0;
+  overflow:hidden;
+  position:relative;
+  transition:all 0.3s;
+  display:flex;flex-direction:column;
+}
+.doorway-card:hover{
+  border-color:var(--border-bright);
+  box-shadow:var(--shadow-card);
+}
+.doorway-accent{
+  height:4px;width:100%;flex-shrink:0;
+}
+.doorway-accent.cyan{
+  background:linear-gradient(90deg, var(--brand-cyan), var(--brand-blue));
+}
+.doorway-accent.violet{
+  background:linear-gradient(90deg, var(--brand-violet), var(--brand-pink));
+}
+.doorway-body-wrap{padding:40px;flex:1;display:flex;flex-direction:column;}
+.doorway-label{
+  font-family:var(--font-mono);font-size:11px;
+  text-transform:uppercase;letter-spacing:0.12em;
+  margin-bottom:16px;
+}
+.doorway-label.cyan{color:var(--brand-cyan);}
+.doorway-label.violet{color:var(--brand-violet);}
+.doorway-heading{
+  font-size:26px;font-weight:700;
+  line-height:1.2;margin-bottom:16px;
+  color:var(--text-primary);
+}
+.doorway-copy{
+  font-size:15px;color:var(--text-secondary);
+  line-height:1.7;margin-bottom:24px;
+}
+.doorway-features{list-style:none;margin-bottom:32px;flex:1;}
+.doorway-features li{
+  font-family:var(--font-mono);font-size:13px;
+  color:var(--text-muted);margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.doorway-features li::before{content:'→';flex-shrink:0;}
+.df-cyan li::before{color:var(--brand-cyan);}
+.df-violet li::before{color:var(--brand-violet);}
+.doorway-cta{
+  font-size:14px;font-weight:600;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:gap 0.2s;
+}
+.doorway-cta.cyan{color:var(--brand-cyan);}
+.doorway-cta.violet{color:var(--brand-violet);}
+.doorway-cta:hover{gap:10px;}
+
+/* ── COMPARISON TABLE ─────────────────────────────────────────────────── */
+.compare-section{padding:120px 32px;}
+.compare-inner{max-width:1100px;margin:0 auto;}
+.compare-heading{
+  font-size:52px;font-weight:800;line-height:1.1;
+  letter-spacing:-0.03em;text-align:center;margin-bottom:16px;
+}
+.compare-sub{
+  font-size:18px;color:var(--text-secondary);
+  text-align:center;max-width:700px;
+  margin:0 auto 56px;line-height:1.6;
+}
+.compare-wrap{
+  background:var(--bg-elevated);
+  border:1px solid var(--border-default);
+  border-radius:16px;overflow:hidden;
+  box-shadow:var(--shadow-card);
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+}
+table.ctable{width:100%;border-collapse:collapse;min-width:580px;}
+.ctable thead tr{background:var(--bg-card);}
+.ctable th{
+  padding:20px 24px;
+  font-size:15px;font-weight:700;
+  color:var(--text-primary);
+  text-align:center;
+  border-bottom:1px solid var(--border-default);
+}
+.ctable th:first-child{text-align:left;min-width:200px;}
+.ctable th.cgv{
+  background:var(--bg-input);
+  color:var(--brand-blue-bright);
+  border-bottom:2px solid var(--brand-blue);
+}
+.cgv-badge{
+  display:block;font-family:var(--font-mono);
+  font-size:9px;font-weight:700;
+  color:var(--brand-blue-bright);
+  letter-spacing:0.08em;margin-top:4px;
+}
+.ctable td{
+  padding:16px 24px;font-size:13px;
+  color:var(--text-muted);text-align:center;
+  border-bottom:1px solid var(--border-subtle);
+}
+.ctable tbody tr:last-child td{border-bottom:none;}
+.ctable td:first-child{text-align:left;font-weight:500;color:var(--text-secondary);}
+.ctable td.cgv{
+  background:rgba(59,130,246,0.05);
+  color:var(--text-primary);font-weight:500;
+}
+.ck{font-family:var(--font-mono);font-size:16px;color:var(--success);filter:drop-shadow(0 0 4px var(--success-glow));}
+.cx{font-family:var(--font-mono);font-size:16px;color:var(--text-dim);}
+
+/* ── PRICING ──────────────────────────────────────────────────────────── */
+.pricing-section{padding:120px 32px;}
+.pricing-inner{max-width:1280px;margin:0 auto;}
+.pricing-heading{
+  font-size:52px;font-weight:800;line-height:1.1;
+  letter-spacing:-0.03em;text-align:center;margin-bottom:16px;
+}
+.pricing-sub{
+  font-size:18px;color:var(--text-secondary);
+  text-align:center;max-width:640px;
+  margin:0 auto 64px;line-height:1.6;
+}
+.pricing-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:24px;padding-top:20px;
+}
+.price-card{
+  background:var(--bg-elevated);
+  border:1px solid var(--border-default);
+  border-radius:20px;padding:40px;
+  position:relative;
+  display:flex;flex-direction:column;
+  transition:all 0.3s;
+}
+.price-card:hover{border-color:var(--border-bright);transform:translateY(-4px);}
+.price-card.featured{
+  background:linear-gradient(160deg, rgba(59,130,246,0.08), var(--bg-elevated) 40%);
+  border-color:var(--border-accent);
+  box-shadow:var(--glow-blue);
+}
+.price-card.featured:hover{box-shadow:0 0 60px rgba(59,130,246,0.4);}
+.popular-badge{
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+  background:var(--gradient-button);color:#fff;
+  font-family:var(--font-mono);font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.1em;
+  padding:5px 14px;border-radius:999px;white-space:nowrap;
+}
+.price-tier{
+  font-family:var(--font-mono);font-size:11px;
+  text-transform:uppercase;letter-spacing:0.1em;
+  color:var(--text-muted);margin-bottom:16px;
+}
+.price-tier.blue{color:var(--brand-blue-bright);}
+.price-amount{
+  font-size:56px;font-weight:800;color:var(--text-primary);
+  line-height:1;margin-bottom:2px;
+}
+.price-amount.gradient-price{
+  background:var(--gradient-text);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.price-per{font-size:14px;color:var(--text-dim);margin-bottom:16px;}
+.price-desc{
+  font-size:14px;color:var(--text-muted);
+  margin-bottom:28px;line-height:1.5;
+}
+.price-features{list-style:none;flex:1;margin-bottom:32px;}
+.price-feat{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:8px 0;
+  font-size:14px;color:var(--text-secondary);
+  border-bottom:1px solid var(--border-subtle);
+}
+.price-feat:last-child{border-bottom:none;}
+.price-feat-check{
+  color:var(--success);flex-shrink:0;margin-top:2px;
+  font-size:14px;
+}
+.price-btn{
+  width:100%;padding:14px;border-radius:10px;
+  font-size:14px;font-weight:600;
+  border:none;cursor:pointer;
+  transition:all 0.2s;
+}
+.price-btn.primary{
+  background:var(--gradient-button);color:#fff;
+  box-shadow:var(--glow-blue);
+}
+.price-btn.primary:hover{transform:translateY(-1px);box-shadow:0 0 50px rgba(59,130,246,0.4);}
+.price-btn.secondary{
+  background:transparent;color:var(--text-secondary);
+  border:1px solid var(--border-bright);
+}
+.price-btn.secondary:hover{border-color:var(--brand-blue-bright);color:var(--brand-blue-bright);}
+
+/* ── FOUNDER ──────────────────────────────────────────────────────────── */
+.founder-section{padding:120px 32px;}
+.founder-inner{max-width:1000px;margin:0 auto;}
+.founder-eyebrow{
+  font-family:var(--font-mono);font-size:11px;
+  text-transform:uppercase;letter-spacing:0.15em;
+  color:var(--brand-blue-bright);margin-bottom:16px;
+}
+.founder-heading{
+  font-size:36px;font-weight:700;line-height:1.2;
+  margin-bottom:40px;max-width:600px;
+}
+.founder-layout{
+  display:grid;grid-template-columns:280px 1fr;
+  gap:48px;align-items:start;
+}
+.founder-photo{
+  width:280px;height:280px;
+  background:var(--bg-elevated);
+  border:1px solid var(--border-bright);
+  border-radius:20px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:12px;
+  color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;
+  position:relative;
+  box-shadow:var(--shadow-card);
+  flex-shrink:0;
+  overflow:hidden;
+}
+.founder-photo::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;bottom:0;
+  background:var(--gradient-card-glow);
+  opacity:0.4;
+}
+.founder-photo-accent{
+  position:absolute;bottom:-10px;right:-10px;
+  width:60px;height:60px;
+  background:var(--gradient-button);
+  filter:blur(20px);opacity:0.5;
+  border-radius:50%;
+}
+.founder-prose{
+  font-size:17px;color:var(--text-secondary);
+  line-height:1.75;max-width:600px;
+}
+.founder-prose p{margin-bottom:20px;}
+.founder-link{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:14px;font-weight:500;
+  color:var(--brand-blue-bright);
+  transition:gap 0.2s;
+}
+.founder-link:hover{gap:10px;}
+
+/* ── CTA SECTION ─────────────────────────────────────────────────────── */
+.cta-section{
+  padding:120px 32px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.cta-section::before{
+  content:'';position:absolute;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  width:800px;height:500px;
+  background:radial-gradient(ellipse, rgba(59,130,246,0.1), transparent 60%);
+  pointer-events:none;
+}
+.cta-inner{max-width:800px;margin:0 auto;position:relative;z-index:1;}
+.cta-heading{
+  font-size:56px;font-weight:800;line-height:1.1;
+  letter-spacing:-0.03em;margin-bottom:24px;
+}
+.cta-sub{
+  font-size:19px;color:var(--text-secondary);
+  margin-bottom:40px;
+}
+.cta-scanner-wrap{max-width:560px;margin:0 auto;}
+.cta-cli{
+  font-family:var(--font-mono);font-size:12px;
+  color:var(--text-dim);margin-top:20px;
+}
+
+/* ── FOOTER ───────────────────────────────────────────────────────────── */
+footer{
+  background:var(--bg-base);
+  border-top:1px solid var(--border-subtle);
+  padding:80px 32px 40px;
+}
+.footer-inner{max-width:1280px;margin:0 auto;}
+.footer-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr 1fr;
+  gap:48px;margin-bottom:64px;
+}
+.footer-logo{
+  font-size:20px;font-weight:700;
+  letter-spacing:-0.02em;color:var(--text-primary);
+  margin-bottom:12px;
+}
+.footer-tagline{
+  font-size:13px;color:var(--text-muted);
+  max-width:240px;line-height:1.6;margin-bottom:16px;
+}
+.footer-version-pill{
+  display:inline-block;
+  font-family:var(--font-mono);font-size:10px;
+  color:var(--text-dim);
+  background:var(--bg-elevated);
+  border:1px solid var(--border-default);
+  padding:3px 10px;border-radius:999px;
+}
+.footer-col-hd{
+  font-family:var(--font-mono);font-size:11px;
+  text-transform:uppercase;letter-spacing:0.12em;
+  color:var(--text-dim);margin-bottom:16px;
+}
+.footer-links{display:flex;flex-direction:column;}
+.footer-links a{
+  font-size:14px;color:var(--text-muted);
+  margin-bottom:10px;transition:color 0.15s;
+  display:flex;align-items:center;gap:8px;
+}
+.footer-links a:hover{color:var(--text-primary);}
+.footer-links a i{width:14px;height:14px;flex-shrink:0;}
+.footer-bottom{
+  padding-top:32px;
+  border-top:1px solid var(--border-subtle);
+  display:flex;justify-content:space-between;
+  align-items:center;flex-wrap:wrap;gap:12px;
+}
+.footer-copy{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);}
+.footer-legal{display:flex;gap:16px;}
+.footer-legal a{
+  font-family:var(--font-mono);font-size:12px;
+  color:var(--text-dim);transition:color 0.15s;
+}
+.footer-legal a:hover{color:var(--text-muted);}
+
+/* ── RESPONSIVE ───────────────────────────────────────────────────────── */
+@media(max-width:1199px){
+  .hero-h1{font-size:56px;}
+  .demo-heading,.features-heading,.report-heading,.doorways-heading,.compare-heading,.pricing-heading,.cta-heading{font-size:44px;}
+  .features-grid{grid-template-columns:repeat(2,1fr);}
+  .report-inner{grid-template-columns:1fr;}
+  .report-visual{display:none;}
+}
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr;}
+  .hero-right{display:none;}
+  .demo-panel-body{grid-template-columns:1fr;}
+  .demo-report{border-top:1px solid var(--border-default);}
+}
+@media(max-width:768px){
+  .hero-section{padding:80px 20px 60px;}
+  .hero-h1{font-size:44px;}
+  .hero-sub{font-size:16px;}
+  .nav-links{display:none;}
+  .nav-actions .btn-ghost{display:none;}
+  .nav-hamburger{display:flex;}
+  .doorways-grid{grid-template-columns:1fr;}
+  .features-grid{grid-template-columns:1fr;}
+  .pricing-grid{grid-template-columns:1fr;}
+  .founder-layout{grid-template-columns:1fr;}
+  .founder-photo{width:100%;max-width:240px;}
+  .footer-grid{grid-template-columns:1fr 1fr;gap:32px;}
+  .compare-heading,.doorways-heading,.pricing-heading,.cta-heading{font-size:36px;}
+  .demo-heading,.features-heading{font-size:34px;}
+  .logos-section{padding:48px 0;}
+  .demo-section,.features-section,.report-section,.doorways-section,.compare-section,.pricing-section,.founder-section,.cta-section{padding:80px 20px;}
+  .demo-metrics{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:480px){
+  .footer-grid{grid-template-columns:1fr;}
+  .chips-row{gap:6px;}
+  .footer-bottom{flex-direction:column;align-items:flex-start;}
+  .hero-h1{font-size:38px;}
+  .cta-heading{font-size:32px;}
+}
 </style>
 </head>
 <body>
+<main>
 
-<!-- ── NAVBAR ────────────────────────────────────────────── -->
+<!-- SECTION A: NAVIGATION -->
 <nav>
-  <a href="#" class="nav-logo">Get<span>Vouch</span></a>
-  <ul class="nav-links" id="navLinks">
-    <li><a href="#features">Features</a></li>
-    <li><a href="#how-it-works">How it works</a></li>
-    <li><a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener">GitHub</a></li>
-    <li><a href="#web-scanner" class="nav-cta">Scan for free</a></li>
-  </ul>
-  <div class="nav-hamburger" id="hamburger" onclick="toggleNav()" aria-label="Menu">
-    <span></span><span></span><span></span>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Get<span class="logo-gradient">Vouch</span></a>
+    <ul class="nav-links">
+      <li><a href="#scanner">Product</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#">Docs</a></li>
+      <li><a href="#">Changelog</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener" class="btn-ghost">GitHub</a>
+      <a href="#scanner" class="btn-primary">Scan Now →</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menu" onclick="toggleNav()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile" id="mobileNav">
+    <a href="#scanner" onclick="closeNav()">Product</a>
+    <a href="#pricing" onclick="closeNav()">Pricing</a>
+    <a href="#" onclick="closeNav()">Docs</a>
+    <a href="#" onclick="closeNav()">Changelog</a>
+    <a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener" onclick="closeNav()">GitHub</a>
   </div>
 </nav>
+<!-- SECTION A: NAVIGATION — COMPLETE -->
 
-<!-- ── HERO ─────────────────────────────────────────────── -->
-<div class="hero">
-  <div class="hero-left">
-    <div class="hero-badge">Built by a Cybersecurity Analyst</div>
-    <h1>Your vibe-coded app has <em>security holes.</em></h1>
-    <h2>Find them in 60 seconds.</h2>
-    <p class="hero-sub">
-      I spent years hunting these exact vulnerabilities in enterprise breach reports.
-      Now AI tools are generating them automatically.
-      GetVouch finds them before your users do.
-    </p>
-    <div class="hero-buttons">
-      <a href="#web-scanner" class="btn-primary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Scan your repo — free
-      </a>
-      <a href="#features" class="btn-secondary">
-        See what it catches
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-  </div>
+<!-- SECTION B: HERO -->
+<section id="scanner" class="hero-section">
+  <div class="hero-inner">
+    <div class="hero-grid">
 
-  <div class="terminal-wrap">
-    <div class="terminal-glow"></div>
-    <div class="terminal">
-      <div class="terminal-bar">
-        <div class="terminal-dot"></div>
-        <div class="terminal-dot"></div>
-        <div class="terminal-dot"></div>
-        <div class="terminal-title">bash — getvouch</div>
-      </div>
-      <div class="terminal-body" id="terminalBody">
-        <span class="cursor" id="termCursor"></span>
-      </div>
-    </div>
-  </div>
-</div>
+      <!-- LEFT COLUMN -->
+      <div class="hero-left">
 
-<!-- ── WEB SCANNER ───────────────────────────────────────── -->
-<section id="web-scanner">
-  <div class="scanner-card fade-up">
-    <div class="scanner-headline">Scan your GitHub repo — free</div>
-    <div class="scanner-sub">Paste any public GitHub URL. Results in seconds. Your code stays on your machine.</div>
-
-    <div class="scanner-input-row">
-      <input
-        id="scanInput"
-        class="scanner-input"
-        type="url"
-        placeholder="https://github.com/username/repo"
-        autocomplete="off"
-        spellcheck="false"
-      />
-      <button id="scanBtn" class="scanner-btn" onclick="runScan()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        Scan Now
-      </button>
-    </div>
-
-    <!-- How to find your repo URL -->
-    <details class="repo-help">
-      <summary>
-        Need help finding your repo URL?
-        <span class="repo-help-chevron">▼</span>
-      </summary>
-      <div class="repo-help-body">
-        <div class="repo-help-row">
-          <img class="repo-help-logo" src="https://lovable.dev/favicon.ico" alt="Lovable" width="20" height="20">
-          <span class="repo-help-platform">Lovable</span>
-          <span class="repo-help-tip">Open your project → click the GitHub icon (top right) → copy the repo URL</span>
+        <!-- Status pill -->
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          <span class="status-text">v1.4.0 &middot; AI Fix Prompts shipping</span>
         </div>
-        <div class="repo-help-row">
-          <span class="repo-help-logo" style="display:inline-flex;align-items:center;justify-content:center;background:#1e293b;color:#fff;font-family:monospace;font-size:11px;font-weight:700;border-radius:4px;width:20px;height:20px;flex-shrink:0;">R</span>
-          <span class="repo-help-platform">Replit</span>
-          <span class="repo-help-tip">Open your Repl → Tools → Git → Connect to GitHub → copy the repo URL</span>
-        </div>
-        <div class="repo-help-row">
-          <img class="repo-help-logo" src="https://cursor.sh/favicon.ico" alt="Cursor" width="20" height="20">
-          <span class="repo-help-platform">Cursor</span>
-          <span class="repo-help-tip">Open terminal → run <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">git remote get-url origin</code> → copy the output</span>
-        </div>
-        <div class="repo-help-row">
-          <span class="repo-help-logo" style="display:inline-flex;align-items:center;justify-content:center;background:#1e293b;color:#fff;font-family:monospace;font-size:11px;font-weight:700;border-radius:4px;width:20px;height:20px;flex-shrink:0;">B</span>
-          <span class="repo-help-platform">Bolt</span>
-          <span class="repo-help-tip">Open your project → click the GitHub icon → push to GitHub → copy the repo URL</span>
-        </div>
-        <div class="repo-help-row">
-          <span class="repo-help-logo" style="display:inline-flex;align-items:center;justify-content:center;background:#7C3AED;color:#fff;font-family:monospace;font-size:9px;font-weight:700;border-radius:4px;width:20px;height:20px;flex-shrink:0;letter-spacing:-0.5px;">CC</span>
-          <span class="repo-help-platform">Claude Code</span>
-          <span class="repo-help-tip">In your project → run <code style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;font-size:11px;">git remote get-url origin</code> in the terminal</span>
-        </div>
-      </div>
-    </details>
 
-    <!-- Loading terminal -->
-    <div id="scanLoading" class="scan-loading">
-      <div class="scan-loading-bar">
-        <div class="scan-loading-dot"></div>
-        <div class="scan-loading-dot"></div>
-        <div class="scan-loading-dot"></div>
-        <div class="scan-loading-title">GetVouch Scanner — running</div>
-      </div>
-      <div class="scan-loading-body" id="scanLog">
-        <span class="scan-cursor"></span>
-      </div>
-    </div>
+        <!-- Headline -->
+        <h1 class="hero-h1">Audit anything.<br><span class="gradient-text">Fix everything.</span></h1>
 
-    <!-- Error -->
-    <div id="scanError" class="scan-error">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span id="scanErrorMsg"></span>
-    </div>
+        <!-- Subheadline -->
+        <p class="hero-sub">Security scanning for AI-generated code, freelance projects, and indie products. Nine domains. Twenty-five secret patterns. Every finding ships with a copy-paste fix prompt for your AI tool.</p>
 
-    <!-- Results -->
-    <div id="scanResults" class="scan-results">
-
-      <!-- Score header -->
-      <div class="result-header" id="resultHeader">
-        <div>
-          <span class="result-score-num" id="resultScore"></span>
-          <span class="result-score-denom">/100</span>
-        </div>
-        <div class="result-meta">
-          <div class="result-risk-badge" id="resultBadge"></div>
-          <div class="result-rating" id="resultRating"></div>
-          <div class="result-files" id="resultFiles"></div>
-        </div>
-      </div>
-
-      <!-- Clean state -->
-      <div class="result-clean" id="resultClean" style="display:none">
-        <div class="result-clean-icon">✅</div>
-        <div>
-          <div class="result-clean-text">Clean — Safe to ship</div>
-          <div class="result-clean-sub">No security issues detected across all 9 categories.</div>
-        </div>
-      </div>
-
-      <!-- Findings by category -->
-      <div class="result-categories" id="resultCategories"></div>
-
-      <!-- Download report -->
-      <div class="download-report-row" id="downloadReportRow">
-        <button class="download-report-btn" onclick="downloadReport()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download Report
-        </button>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── TRUST BAR ─────────────────────────────────────────── -->
-<div class="trust-bar">
-  <div class="trust-bar-inner">
-    <span class="trust-label">Catches vulnerabilities from</span>
-    <div class="trust-divider"></div>
-    <div class="trust-tools">
-      <span class="trust-tool">Cursor</span>
-      <span class="trust-tool">Lovable</span>
-      <span class="trust-tool">Replit</span>
-      <span class="trust-tool">Windsurf</span>
-      <span class="trust-tool">Claude Code</span>
-      <span class="trust-tool">v0</span>
-    </div>
-  </div>
-</div>
-
-<!-- ── WHAT IT CATCHES ───────────────────────────────────── -->
-<section id="features">
-  <div class="section-inner">
-    <div class="catches-header fade-up">
-      <div class="section-label">Coverage</div>
-      <h2 class="section-title">What GetVouch catches</h2>
-      <p class="section-sub">25+ secret types. 9 vulnerability categories. Every pattern AI tools reliably introduce.</p>
-    </div>
-    <div class="catches-grid">
-      <div class="catch-card fade-up">
-        <div class="catch-icon">🔑</div>
-        <div class="catch-title">Exposed API Keys</div>
-        <div class="catch-badge">25 secret types</div>
-        <div class="catch-desc">OpenAI, Anthropic, Stripe, AWS, GitHub, Twilio, Firebase, Shopify, PayPal, SendGrid and more — hardcoded in your source.</div>
-      </div>
-      <div class="catch-card fade-up">
-        <div class="catch-icon">🛡️</div>
-        <div class="catch-title">Client-Side Auth Bypass</div>
-        <div class="catch-badge">CRITICAL</div>
-        <div class="catch-desc">isAdmin, isPaid, isSubscribed checks in JavaScript that any user can override with DevTools in two seconds.</div>
-      </div>
-      <div class="catch-card fade-up">
-        <div class="catch-icon">💉</div>
-        <div class="catch-title">SQL Injection Risks</div>
-        <div class="catch-badge">HIGH</div>
-        <div class="catch-desc">User-controlled strings concatenated directly into database queries — the most exploited class of web vulnerability.</div>
-      </div>
-      <div class="catch-card fade-up">
-        <div class="catch-icon">🌐</div>
-        <div class="catch-title">CORS Misconfiguration</div>
-        <div class="catch-badge">HIGH</div>
-        <div class="catch-desc">Wildcard origins that let any website make authenticated requests to your API on behalf of your logged-in users.</div>
-      </div>
-      <div class="catch-card fade-up">
-        <div class="catch-icon">📄</div>
-        <div class="catch-title">Env File Exposure</div>
-        <div class="catch-badge">CRITICAL</div>
-        <div class="catch-desc">.env files present but missing from .gitignore — one git push away from exposing every secret to the public.</div>
-      </div>
-      <div class="catch-card fade-up">
-        <div class="catch-icon">⚠️</div>
-        <div class="catch-title">Missing Input Validation</div>
-        <div class="catch-badge">HIGH</div>
-        <div class="catch-desc">User input from req.body or request.form hitting your logic without sanitization, enabling injection and manipulation.</div>
-      </div>
-      <div class="catch-card fade-up">
-        <div class="catch-icon">🔓</div>
-        <div class="catch-title">Insecure Object References</div>
-        <div class="catch-badge">HIGH</div>
-        <div class="catch-desc">findById and params.id patterns with no ownership check — users accessing and modifying other users' data.</div>
-      </div>
-      <div class="catch-card fade-up">
-        <div class="catch-icon">📦</div>
-        <div class="catch-title">Outdated Dependencies</div>
-        <div class="catch-badge">MEDIUM</div>
-        <div class="catch-desc">Known-vulnerable package versions in package.json that carry published CVEs with active exploits.</div>
-      </div>
-      <div class="catch-card fade-up">
-        <div class="catch-icon">🏠</div>
-        <div class="catch-title">Localhost URLs in Production</div>
-        <div class="catch-badge">MEDIUM</div>
-        <div class="catch-desc">Hardcoded localhost:3000 and 127.0.0.1 references that will fail silently in production with no error message.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── BREACH SECTION ────────────────────────────────────── -->
-<section id="breach">
-  <div class="section-inner">
-    <div class="breach-box fade-up">
-      <div class="breach-quote-mark">"</div>
-      <p class="breach-story">
-        In late 2025, a founder built a SaaS entirely with Cursor.
-        Within <strong>72 hours</strong>, users bypassed the paywall by changing one value
-        in their browser console. The AI had put all auth logic client-side —
-        a single <code style="background:rgba(239,68,68,0.1);color:#f87171;padding:2px 6px;border-radius:4px;font-size:0.9em;">isPaid === true</code> check in JavaScript.
-        Anyone who knew how to open DevTools could flip it to <code style="background:rgba(239,68,68,0.1);color:#f87171;padding:2px 6px;border-radius:4px;font-size:0.9em;">true</code>.
-        <strong>The company shut down.</strong>
-      </p>
-      <div class="breach-catch">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        GetVouch catches this pattern in 3 seconds.
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── HOW IT WORKS ──────────────────────────────────────── -->
-<section id="how-it-works">
-  <div class="section-inner">
-    <div class="fade-up">
-      <div class="section-label">Get started</div>
-      <h2 class="section-title">Three commands. Done.</h2>
-      <p class="section-sub">No account. No signup. No sending your code anywhere.</p>
-    </div>
-    <div class="steps">
-      <div class="step fade-up">
-        <div class="step-num">1</div>
-        <div class="step-title">Clone the repo</div>
-        <p class="step-desc">Get GetVouch onto your machine in seconds.</p>
-        <div class="step-code"><span class="cmd-dollar">$ </span>git clone https://github.com/<br>&nbsp;&nbsp;getvouch-ai/vouch-cli</div>
-      </div>
-      <div class="step fade-up">
-        <div class="step-num">2</div>
-        <div class="step-title">Run the scanner</div>
-        <p class="step-desc">Point it at any project folder.</p>
-        <div class="step-code"><span class="cmd-dollar">$ </span>python -m getvouch.main<br>&nbsp;&nbsp;/path/to/your/project</div>
-      </div>
-      <div class="step fade-up">
-        <div class="step-num">3</div>
-        <div class="step-title">Open your report</div>
-        <p class="step-desc">Executive-grade HTML report with every finding, severity, and fix.</p>
-        <div class="step-code"><span class="cmd-dollar">$ </span>open getvouch-report.html</div>
-      </div>
-    </div>
-    <div class="local-badge fade-up">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Runs locally. Your code never leaves your machine.
-    </div>
-  </div>
-</section>
-
-<!-- ── REPORT PREVIEW ────────────────────────────────────── -->
-<section id="report-preview">
-  <div class="section-inner">
-    <div class="fade-up" style="text-align:center;">
-      <div class="section-label">Sample output</div>
-      <h2 class="section-title">The report you get</h2>
-      <p class="section-sub" style="margin:0 auto;">Executive-grade security assessment. Every finding with file, line number, and exact remediation steps.</p>
-    </div>
-    <div class="report-mockup fade-up">
-      <div class="report-cover">
-        <div class="report-cover-top">
-          <div>
-            <div class="report-logo">Get<span>Vouch</span></div>
-            <div style="font-size:10px;color:#64748b;margin-top:2px;letter-spacing:0.1em;">SECURITY ASSESSMENT v1.0</div>
+        <!-- Scanner input -->
+        <div class="scanner-outer" id="heroWrap">
+          <div class="scanner-glow-bg"></div>
+          <div class="scanner-input-container">
+            <svg class="lock-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input
+              id="scanInput"
+              class="scanner-input"
+              type="url"
+              placeholder="github.com/your-org/your-repo  or paste a deployed URL"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="GitHub repository URL"
+            />
+            <button id="scanBtn" class="scanner-btn" onclick="runScan()">Scan <span class="btn-arrow">&#8594;</span></button>
           </div>
-          <div class="report-confidential">CONFIDENTIAL</div>
         </div>
-        <div class="report-score-block">
-          <div>
-            <div style="display:flex;align-items:baseline;gap:4px;">
-              <span class="report-score-num">45</span>
-              <span class="report-score-denom">/100</span>
+
+        <!-- Example chips -->
+        <div class="chips-row">
+          <span class="chips-label">Try:</span>
+          <span class="chip" onclick="fillChip('lovable/example-app')">lovable/example-app</span>
+          <span class="chip" onclick="fillChip('vercel/next.js')">vercel/next.js</span>
+          <span class="chip" onclick="fillChip('getvouch-ai/vouch-cli')">getvouch-ai/vouch-cli</span>
+        </div>
+
+        <!-- Scan states -->
+        <div class="scan-states">
+          <div id="scanLoading" class="scan-loading">
+            <div class="scan-loading-bar">
+              <div class="scan-loading-dot"></div>
+              <div class="scan-loading-dot"></div>
+              <div class="scan-loading-dot"></div>
+              <div class="scan-loading-title">GetVouch Scanner &#8212; running</div>
             </div>
-            <div class="report-title">Security Score — my-saas-app</div>
+            <div class="scan-loading-body" id="scanLog">
+              <span class="scan-cursor"></span>
+            </div>
           </div>
-          <div>
-            <div class="report-risk-badge">CRITICAL RISK</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Do not ship to production</div>
+
+          <div id="scanError" class="scan-error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span id="scanErrorMsg"></span>
+          </div>
+
+          <div id="scanResults" class="scan-results">
+            <div class="result-header" id="resultHeader">
+              <div>
+                <span class="result-score-num" id="resultScore"></span>
+                <span class="result-score-denom">/100</span>
+              </div>
+              <div class="result-meta">
+                <div class="result-risk-badge" id="resultBadge"></div>
+                <div class="result-rating" id="resultRating"></div>
+                <div class="result-files" id="resultFiles"></div>
+              </div>
+            </div>
+            <div class="result-clean" id="resultClean" style="display:none">
+              <div class="result-clean-icon">&#10003;</div>
+              <div>
+                <div class="result-clean-text">Clean &#8212; Safe to ship</div>
+                <div class="result-clean-sub">No security issues detected across all 9 categories.</div>
+              </div>
+            </div>
+            <div class="result-categories" id="resultCategories"></div>
+            <div class="download-report-row" id="downloadReportRow">
+              <button class="download-report-btn" onclick="downloadReport()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Full Report
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="report-body">
-        <div class="report-section-label">Detailed Findings</div>
-        <div class="report-findings">
-          <div class="report-finding critical">
-            <span class="report-finding-sev sev-critical">CRITICAL</span>
-            <span class="report-finding-name">OpenAI API Key</span>
-            <span class="report-finding-file">src/utils/ai.js:14</span>
+
+        <!-- Trust signals -->
+        <p class="hero-trust">9 security domains &nbsp;&middot;&nbsp; 25 secret patterns &nbsp;&middot;&nbsp; 0 accounts &nbsp;&middot;&nbsp; 0 bytes leave your machine</p>
+
+      </div><!-- /hero-left -->
+
+      <!-- RIGHT COLUMN: Floating report card -->
+      <div class="hero-right">
+        <div class="hero-card-wrapper">
+          <div class="hero-card-glow"></div>
+
+          <!-- Rotating gear decoration -->
+          <div class="hero-deco-gear">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
           </div>
-          <div class="report-finding critical">
-            <span class="report-finding-sev sev-critical">CRITICAL</span>
-            <span class="report-finding-name">Client-side payment check</span>
-            <span class="report-finding-file">src/components/Paywall.jsx:31</span>
+
+          <!-- Main card -->
+          <div class="hero-card">
+            <!-- Mac window header -->
+            <div class="card-header">
+              <span class="card-label">GetVouch Security Report</span>
+              <div class="card-dots">
+                <span class="dot red"></span>
+                <span class="dot yellow"></span>
+                <span class="dot green"></span>
+              </div>
+            </div>
+
+            <!-- Repo line -->
+            <div class="card-repo">
+              <div class="card-cmd">$ scan https://github.com/lovable/example-app</div>
+              <div class="card-meta-line">Scanned in 2.3s &middot; 47 files analyzed</div>
+            </div>
+
+            <!-- Vibe Score SVG ring -->
+            <div class="card-score-area">
+              <svg viewBox="0 0 200 200" width="160" height="160" class="score-svg">
+                <defs>
+                  <linearGradient id="heroScoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#60a5fa"/>
+                    <stop offset="100%" stop-color="#a855f7"/>
+                  </linearGradient>
+                </defs>
+                <!-- Background ring -->
+                <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(148,163,184,0.12)" stroke-width="8"/>
+                <!-- Progress ring -->
+                <circle cx="100" cy="100" r="80" fill="none"
+                  stroke="url(#heroScoreGrad)" stroke-width="8"
+                  stroke-linecap="round"
+                  stroke-dasharray="502.65"
+                  stroke-dashoffset="502.65"
+                  transform="rotate(-90 100 100)"
+                  class="hero-score-ring"/>
+                <!-- Score number -->
+                <text x="100" y="92" text-anchor="middle" font-size="52" font-weight="800"
+                  font-family="Inter,system-ui,sans-serif" fill="url(#heroScoreGrad)">72</text>
+                <text x="100" y="116" text-anchor="middle" font-size="10"
+                  font-family="JetBrains Mono,Menlo,monospace" fill="#94a3b8" letter-spacing="2">VIBE SCORE</text>
+              </svg>
+            </div>
+
+            <!-- Findings preview -->
+            <div class="card-findings">
+              <div class="card-finding">
+                <span class="finding-dot red-dot"></span>
+                <span class="finding-sev-lbl">HIGH</span>
+                <span class="finding-text">OpenAI API key exposed</span>
+                <span class="finding-fix">Fix &#8594;</span>
+              </div>
+              <div class="card-finding">
+                <span class="finding-dot orange-dot"></span>
+                <span class="finding-sev-lbl warn">HIGH</span>
+                <span class="finding-text">Missing CORS validation</span>
+                <span class="finding-fix">Fix &#8594;</span>
+              </div>
+              <div class="card-finding">
+                <span class="finding-dot orange-dot"></span>
+                <span class="finding-sev-lbl warn">HIGH</span>
+                <span class="finding-text">IDOR in /api/users</span>
+                <span class="finding-fix">Fix &#8594;</span>
+              </div>
+            </div>
+
+            <div class="card-footer-link">
+              <a href="#scanner" class="card-view-link">View full report &#8599;</a>
+            </div>
+          </div><!-- /hero-card -->
+
+          <!-- AI Fix Prompt floating chip -->
+          <div class="hero-fix-chip">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span>AI Fix Prompt</span>
           </div>
-          <div class="report-finding high">
-            <span class="report-finding-sev sev-high">HIGH</span>
-            <span class="report-finding-name">CORS wildcard</span>
-            <span class="report-finding-file">server/index.js:8</span>
-          </div>
-        </div>
+
+        </div><!-- /hero-card-wrapper -->
+      </div><!-- /hero-right -->
+
+    </div><!-- /hero-grid -->
+  </div><!-- /hero-inner -->
+</section>
+<!-- SECTION B: HERO — COMPLETE -->
+
+<!-- SECTION C: PROVIDER LOGO STRIP -->
+<section class="logos-section">
+  <div class="logos-inner">
+    <p class="logos-eyebrow fade-up">DETECTS PATTERNS FROM 25+ PROVIDERS</p>
+    <div class="logos-wrapper">
+      <div class="logos-track">
+        <!-- Set 1 -->
+        <span class="logo-item">OpenAI</span>
+        <span class="logo-item">Stripe</span>
+        <span class="logo-item">AWS</span>
+        <span class="logo-item">Firebase</span>
+        <span class="logo-item">MongoDB</span>
+        <span class="logo-item">Slack</span>
+        <span class="logo-item">GitHub</span>
+        <span class="logo-item">SendGrid</span>
+        <span class="logo-item">Anthropic</span>
+        <span class="logo-item">Twilio</span>
+        <span class="logo-item">Supabase</span>
+        <span class="logo-item">Vercel</span>
+        <span class="logo-item">Cloudflare</span>
+        <span class="logo-item">Discord</span>
+        <span class="logo-item">PayPal</span>
+        <!-- Set 2 (duplicate for seamless loop) -->
+        <span class="logo-item">OpenAI</span>
+        <span class="logo-item">Stripe</span>
+        <span class="logo-item">AWS</span>
+        <span class="logo-item">Firebase</span>
+        <span class="logo-item">MongoDB</span>
+        <span class="logo-item">Slack</span>
+        <span class="logo-item">GitHub</span>
+        <span class="logo-item">SendGrid</span>
+        <span class="logo-item">Anthropic</span>
+        <span class="logo-item">Twilio</span>
+        <span class="logo-item">Supabase</span>
+        <span class="logo-item">Vercel</span>
+        <span class="logo-item">Cloudflare</span>
+        <span class="logo-item">Discord</span>
+        <span class="logo-item">PayPal</span>
       </div>
     </div>
   </div>
 </section>
+<!-- SECTION C: PROVIDER LOGO STRIP — COMPLETE -->
 
-<!-- ── VS SECTION ────────────────────────────────────────── -->
-<section id="compare">
-  <div class="section-inner">
-    <div class="fade-up" style="text-align:center">
-      <div class="section-label">Why GetVouch</div>
-      <h2 class="section-title">GetVouch vs Traditional Security Audit</h2>
+<!-- SECTION D: LIVE SCAN DEMO -->
+<section class="demo-section" id="demo">
+  <div class="demo-inner">
+    <p class="section-eyebrow centered fade-up">WATCH IT WORK</p>
+    <h2 class="demo-heading fade-up">From repo to security report in 60 seconds.</h2>
+    <p class="demo-sub fade-up">No upload. No OAuth. No account. Watch a real scan happen.</p>
+
+    <div class="demo-panel fade-up">
+      <!-- Terminal header -->
+      <div class="demo-panel-header">
+        <div class="demo-traffic-lights">
+          <span class="demo-tl red"></span>
+          <span class="demo-tl yellow"></span>
+          <span class="demo-tl green"></span>
+        </div>
+        <span class="demo-panel-title">GetVouch Scanner</span>
+      </div>
+
+      <!-- Split body -->
+      <div class="demo-panel-body">
+
+        <!-- LEFT: animated terminal -->
+        <div class="demo-terminal" id="demoTerminal">
+          <span class="term-line term-dim">&nbsp;</span>
+        </div>
+
+        <!-- RIGHT: report preview -->
+        <div class="demo-report">
+          <div class="demo-report-heading">Security Assessment</div>
+
+          <!-- Mini vibe score ring -->
+          <div class="demo-score-area">
+            <svg viewBox="0 0 140 140" width="120" height="120" class="demo-score-svg">
+              <defs>
+                <linearGradient id="demoScoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#60a5fa"/>
+                  <stop offset="100%" stop-color="#a855f7"/>
+                </linearGradient>
+              </defs>
+              <circle cx="70" cy="70" r="56" fill="none" stroke="rgba(148,163,184,0.12)" stroke-width="6"/>
+              <circle cx="70" cy="70" r="56" fill="none"
+                stroke="url(#demoScoreGrad)" stroke-width="6"
+                stroke-linecap="round"
+                stroke-dasharray="351.86"
+                stroke-dashoffset="351.86"
+                transform="rotate(-90 70 70)"
+                class="demo-score-ring"/>
+              <text x="70" y="65" text-anchor="middle" font-size="34" font-weight="800"
+                font-family="Inter,system-ui,sans-serif" fill="url(#demoScoreGrad)">72</text>
+              <text x="70" y="82" text-anchor="middle" font-size="8"
+                font-family="JetBrains Mono,Menlo,monospace" fill="#94a3b8" letter-spacing="1.5">VIBE SCORE</text>
+            </svg>
+          </div>
+
+          <!-- Metrics grid -->
+          <div class="demo-metrics">
+            <div class="demo-metric">
+              <div class="demo-metric-num c">0</div>
+              <div class="demo-metric-lbl">Critical</div>
+            </div>
+            <div class="demo-metric">
+              <div class="demo-metric-num h">1</div>
+              <div class="demo-metric-lbl">High</div>
+            </div>
+            <div class="demo-metric">
+              <div class="demo-metric-num m">2</div>
+              <div class="demo-metric-lbl">Medium</div>
+            </div>
+            <div class="demo-metric">
+              <div class="demo-metric-num">0</div>
+              <div class="demo-metric-lbl">Low</div>
+            </div>
+          </div>
+
+          <!-- Findings list -->
+          <div class="demo-findings">
+            <div class="demo-finding">
+              <span class="demo-sev-dot crit"></span>
+              <span class="demo-finding-text">OpenAI API key in src/config.js:14</span>
+              <span class="demo-finding-chev">&#8250;</span>
+            </div>
+            <div class="demo-finding">
+              <span class="demo-sev-dot high"></span>
+              <span class="demo-finding-text">Missing CORS validation</span>
+              <span class="demo-finding-chev">&#8250;</span>
+            </div>
+            <div class="demo-finding">
+              <span class="demo-sev-dot high"></span>
+              <span class="demo-finding-text">IDOR in /api/users/[id]</span>
+              <span class="demo-finding-chev">&#8250;</span>
+            </div>
+          </div>
+
+          <!-- AI Fix Prompt block — competitive differentiator -->
+          <div class="demo-fix-block">
+            <div class="demo-fix-header">
+              <span class="demo-fix-label">AI FIX PROMPT</span>
+              <button class="demo-fix-copy-btn">Copy</button>
+            </div>
+            <div class="demo-fix-body">SECURITY FIX NEEDED — OpenAI API key<br>found at src/config.js line 14<br><br>Step 1 — Revoke this key at:<br>  platform.openai.com/api-keys<br><br>Step 2 — Add to .env:<br>  OPENAI_API_KEY=your_new_key</div>
+            <div class="demo-fix-hint">Paste into Lovable, Cursor, Bolt, Replit, or Claude Code</div>
+          </div>
+
+        </div><!-- /demo-report -->
+      </div><!-- /demo-panel-body -->
+    </div><!-- /demo-panel -->
+  </div>
+</section>
+<!-- SECTION D: LIVE SCAN DEMO — COMPLETE -->
+
+<!-- SECTION E: FEATURE CARDS -->
+<section class="features-section">
+  <div class="features-inner">
+    <p class="section-eyebrow centered fade-up">NINE SECURITY DOMAINS</p>
+    <h2 class="features-heading fade-up">We catch what your AI tool ships.</h2>
+    <p class="features-sub fade-up">Every scan covers nine categories. Every finding includes a fix prompt for your AI tool.</p>
+
+    <div class="features-grid">
+
+      <!-- 1: Exposed Secrets -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="key"></i></div>
+        <div class="feature-title">Exposed Secrets</div>
+        <p class="feature-desc">Detects 25 key types: OpenAI, Stripe, AWS, Firebase, JWT, private keys, and more.</p>
+        <div class="feature-snippet"><code>OPENAI_API_KEY = "sk-proj-aB3..." // ⚠ exposed</code></div>
+      </div>
+
+      <!-- 2: Client-Side Auth -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="shield"></i></div>
+        <div class="feature-title">Client-Side Auth</div>
+        <p class="feature-desc">Catches auth checks that run only in the browser &#8212; bypassable in 5 seconds with DevTools.</p>
+        <div class="feature-snippet"><code>if (user.isAdmin) {  // ⚠ trust the client?</code></div>
+      </div>
+
+      <!-- 3: SQL Injection -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="database"></i></div>
+        <div class="feature-title">SQL Injection</div>
+        <p class="feature-desc">Finds raw SQL string concatenation with user input &#8212; the oldest trick in the book, still common.</p>
+        <div class="feature-snippet"><code>"SELECT * FROM users WHERE id=" + req.id</code></div>
+      </div>
+
+      <!-- 4: CORS Misconfiguration -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="globe"></i></div>
+        <div class="feature-title">CORS Misconfiguration</div>
+        <p class="feature-desc">Spots wildcard origins and credentials misuse &#8212; the silent backdoor of most APIs.</p>
+        <div class="feature-snippet"><code>cors({ origin: "*", credentials: true })</code></div>
+      </div>
+
+      <!-- 5: Environment Safety -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="file-warning"></i></div>
+        <div class="feature-title">Environment Safety</div>
+        <p class="feature-desc">Confirms .env files are properly gitignored and secrets aren&#8217;t committed to your repo history.</p>
+        <div class="feature-snippet"><code>.env  // ⚠ not in .gitignore</code></div>
+      </div>
+
+      <!-- 6: Input Validation -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="filter"></i></div>
+        <div class="feature-title">Input Validation</div>
+        <p class="feature-desc">Identifies endpoints accepting user input without schema validation &#8212; the entry point for most attacks.</p>
+        <div class="feature-snippet"><code>app.post("/api", (req) =&gt; save(req.body))</code></div>
+      </div>
+
+      <!-- 7: IDOR Vulnerabilities -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="user-x"></i></div>
+        <div class="feature-title">IDOR Vulnerabilities</div>
+        <p class="feature-desc">Catches code that fetches resources by user-controlled ID without authorization checks.</p>
+        <div class="feature-snippet"><code>User.findById(req.params.id)</code></div>
+      </div>
+
+      <!-- 8: Dependency Issues -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="package"></i></div>
+        <div class="feature-title">Dependency Issues</div>
+        <p class="feature-desc">Flags localhost URLs, hardcoded paths, and config that breaks the moment you ship to production.</p>
+        <div class="feature-snippet"><code>fetch("http://localhost:3000/api")</code></div>
+      </div>
+
+      <!-- 9: Outdated Packages -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="alert-triangle"></i></div>
+        <div class="feature-title">Outdated Packages</div>
+        <p class="feature-desc">Scans package.json for known-vulnerable versions and suggests safer alternatives.</p>
+        <div class="feature-snippet"><code>"lodash": "^4.17.15"  // 17 known CVEs</code></div>
+      </div>
+
+    </div><!-- /features-grid -->
+  </div>
+</section>
+<!-- SECTION E: FEATURE CARDS — COMPLETE -->
+
+<!-- SECTION F: EXECUTIVE REPORT -->
+<section class="report-section">
+  <div class="report-inner">
+
+    <!-- LEFT: Copy -->
+    <div>
+      <p class="report-eyebrow fade-up">DELIVERABLE</p>
+      <h2 class="report-heading fade-up">The report your clients will respect.</h2>
+      <p class="report-sub fade-up">Every scan generates a downloadable PDF that looks like it came from a Big4 consulting firm. Cover page. Executive summary. Risk score. Detailed findings. Remediation guidance. Disclaimer. Use it for client deliverables, compliance reviews, or internal audits.</p>
+
+      <div class="report-features fade-up">
+        <div class="report-feat-item">
+          <svg class="report-feat-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span class="report-feat-text">Customizable header &#8212; add your agency logo on the Pro tier</span>
+        </div>
+        <div class="report-feat-item">
+          <svg class="report-feat-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span class="report-feat-text">9-domain breakdown with file paths and line numbers</span>
+        </div>
+        <div class="report-feat-item">
+          <svg class="report-feat-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span class="report-feat-text">Copy-paste AI fix prompt for every finding</span>
+        </div>
+        <div class="report-feat-item">
+          <svg class="report-feat-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span class="report-feat-text">Print-ready, brandable, professional</span>
+        </div>
+      </div>
+
+      <a href="#" class="report-cta-btn fade-up">See a sample report &#8594;</a>
     </div>
-    <div class="vs-table fade-up">
-      <div class="vs-header">
-        <div class="vs-col-label" style="text-align:left;padding-left:24px;">Criteria</div>
-        <div class="vs-col-label ours">GetVouch</div>
-        <div class="vs-col-label theirs">Traditional Audit</div>
+
+    <!-- RIGHT: Document mockup -->
+    <div class="report-visual fade-up">
+      <div class="report-doc-glow"></div>
+      <div class="report-doc">
+        <!-- Dark navy header band -->
+        <div class="doc-header">
+          <div class="doc-header-top">
+            <div>
+              <div class="doc-logo">Get<span>Vouch</span></div>
+              <div class="doc-version">v1.4.0 &#8212; Web Scanner</div>
+            </div>
+            <div class="doc-confidential">Confidential</div>
+          </div>
+          <div class="doc-title">Security Assessment Report</div>
+          <div class="doc-subtitle">AI-Generated Code Security Analysis &#8212; Full Spectrum Scan</div>
+          <div class="doc-meta">
+            <div>
+              <div class="doc-meta-label">Date</div>
+              <div class="doc-meta-value">April 28, 2026</div>
+            </div>
+            <div>
+              <div class="doc-meta-label">Repository</div>
+              <div class="doc-meta-value" style="font-size:11px;word-break:break-all;">lovable/example-app</div>
+            </div>
+            <div>
+              <div class="doc-meta-label">Risk Level</div>
+              <div class="doc-meta-value" style="color:#fbbf24;">HIGH</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- White body -->
+        <div class="doc-body">
+          <div class="doc-section-label">01 &#8212; Executive Summary</div>
+          <div class="doc-exec-box">
+            <p class="doc-exec-text">Significant security vulnerabilities have been identified. Immediate remediation is strongly recommended prior to any production deployment.</p>
+          </div>
+
+          <div class="doc-section-label" style="margin-top:14px;">02 &#8212; Risk Score</div>
+          <div class="doc-score-row">
+            <div class="doc-score-card">
+              <div class="doc-score-num">72</div>
+              <div class="doc-score-denom">/100</div>
+              <div class="doc-score-lbl">Score</div>
+            </div>
+            <div class="doc-metrics-mini">
+              <div class="doc-metric-mini"><div class="doc-metric-num" style="color:#dc2626;">0</div><div class="doc-metric-lbl">Critical</div></div>
+              <div class="doc-metric-mini"><div class="doc-metric-num" style="color:#ea580c;">1</div><div class="doc-metric-lbl">High</div></div>
+              <div class="doc-metric-mini"><div class="doc-metric-num" style="color:#ca8a04;">2</div><div class="doc-metric-lbl">Medium</div></div>
+              <div class="doc-metric-mini"><div class="doc-metric-num" style="color:#16a34a;">0</div><div class="doc-metric-lbl">Low</div></div>
+            </div>
+          </div>
+
+          <div class="doc-section-label" style="margin-top:14px;">03 &#8212; Detailed Findings</div>
+          <div class="doc-findings-row">
+            <div class="doc-finding-badge" style="background:#fef2f2;color:#dc2626;border:1px solid #dc2626;">
+              <span>CRITICAL</span><span style="font-weight:400;">OpenAI API key exposed</span>
+            </div>
+            <div class="doc-finding-badge" style="background:#fff7ed;color:#ea580c;border:1px solid #ea580c;margin-top:4px;">
+              <span>HIGH</span><span style="font-weight:400;">Missing CORS validation</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="vs-row">
-        <div class="vs-cell" style="text-align:left;color:var(--text-muted);">Cost</div>
-        <div class="vs-cell ours"><span class="vs-checkmark">Free forever</span></div>
-        <div class="vs-cell theirs">$500 – $2,000+</div>
+    </div>
+
+  </div>
+</section>
+<!-- SECTION F: EXECUTIVE REPORT — COMPLETE -->
+
+<!-- SECTION G: TWO DOORWAYS -->
+<section class="doorways-section">
+  <div class="doorways-inner">
+    <p class="section-eyebrow centered fade-up">WHO IT&#8217;S FOR</p>
+    <h2 class="doorways-heading fade-up">One scanner. Two doorways.</h2>
+    <p class="doorways-sub fade-up">Same product. Two stories. Pick the door that fits.</p>
+
+    <div class="doorways-grid">
+
+      <!-- Doorway 1: Vibe Coders -->
+      <div class="doorway-card fade-up">
+        <div class="doorway-accent cyan"></div>
+        <div class="doorway-body-wrap">
+          <div class="doorway-label cyan">FOR VIBE CODERS</div>
+          <h3 class="doorway-heading">Your AI ships fast. It also ships unlocked doors.</h3>
+          <p class="doorway-copy">Lovable, Cursor, Bolt, Replit, Claude Code generate code in minutes. They also generate the same security mistakes &#8212; exposed API keys, missing auth, .env files in git. GetVouch catches them and hands you a copy-paste fix prompt for your AI tool.</p>
+          <ul class="doorway-features df-cyan">
+            <li>Scan any GitHub repo or local folder</li>
+            <li>AI fix prompts for Lovable, Cursor, Bolt</li>
+            <li>Free forever for solo builders</li>
+          </ul>
+          <a href="#scanner" class="doorway-cta cyan">Scan your repo &#8594;</a>
+        </div>
       </div>
-      <div class="vs-row">
-        <div class="vs-cell" style="text-align:left;color:var(--text-muted);">Time to results</div>
-        <div class="vs-cell ours"><span class="vs-checkmark">60 seconds</span></div>
-        <div class="vs-cell theirs">2 – 4 weeks</div>
+
+      <!-- Doorway 2: Freelancers & Teams -->
+      <div class="doorway-card fade-up">
+        <div class="doorway-accent violet"></div>
+        <div class="doorway-body-wrap">
+          <div class="doorway-label violet">FOR FREELANCERS &amp; TEAMS</div>
+          <h3 class="doorway-heading">The security report your clients deserve.</h3>
+          <p class="doorway-copy">Snyk built for enterprises. Datadog built for CIOs. Nobody built for the freelancer charging $5,000 for an app build, the agency shipping client work weekly, or the bootstrapped startup that can&#8217;t justify $99 per developer per month. GetVouch is the security audit you can deliver alongside your work.</p>
+          <ul class="doorway-features df-violet">
+            <li>Big4-quality executive PDF report</li>
+            <li>White-label reports on Pro tier</li>
+            <li>Run on client repos without sharing your account</li>
+          </ul>
+          <a href="#" class="doorway-cta violet">See a sample report &#8594;</a>
+        </div>
       </div>
-      <div class="vs-row">
-        <div class="vs-cell" style="text-align:left;color:var(--text-muted);">Your code</div>
-        <div class="vs-cell ours"><span class="vs-checkmark">Stays on your machine</span></div>
-        <div class="vs-cell theirs">Sent to strangers</div>
-      </div>
-      <div class="vs-row">
-        <div class="vs-cell" style="text-align:left;color:var(--text-muted);">Source</div>
-        <div class="vs-cell ours"><span class="vs-checkmark">Open source</span></div>
-        <div class="vs-cell theirs">Black box</div>
-      </div>
-      <div class="vs-row">
-        <div class="vs-cell" style="text-align:left;color:var(--text-muted);">Built by</div>
-        <div class="vs-cell ours"><span class="vs-checkmark">Cybersecurity analyst</span></div>
-        <div class="vs-cell theirs">Generic tool</div>
-      </div>
+
     </div>
   </div>
 </section>
+<!-- SECTION G: TWO DOORWAYS — COMPLETE -->
 
-<!-- ── FINAL CTA ─────────────────────────────────────────── -->
-<section id="cta">
-  <div class="section-inner cta-inner">
-    <div class="fade-up">
-      <div class="section-label" style="text-align:center;">Get started now</div>
-      <h2 class="section-title" style="text-align:center;">Ready to find your vulnerabilities?</h2>
-      <div style="display:flex;justify-content:center;margin-top:8px;">
-        <a href="#web-scanner" class="btn-primary" style="font-size:17px;padding:18px 40px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          Scan your repo — free
+<!-- SECTION H: COMPARISON TABLE -->
+<section class="compare-section">
+  <div class="compare-inner">
+    <p class="section-eyebrow centered fade-up">WHY GETVOUCH</p>
+    <h2 class="compare-heading fade-up">Built for everyone they forgot.</h2>
+    <p class="compare-sub fade-up">Snyk and Datadog built for enterprises. Vibe App Scanner and ScanVibe lock features behind accounts. We built the in-between.</p>
+
+    <div class="compare-wrap fade-up">
+      <table class="ctable">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="cgv">GetVouch <span class="cgv-badge">&#9733; RECOMMENDED</span></th>
+            <th>Vibe App Scanner</th>
+            <th>Snyk</th>
+            <th>Prismor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Free unlimited scans</td>
+            <td class="cgv"><span class="ck">&#10003;</span></td>
+            <td>Limited</td>
+            <td>Limited</td>
+            <td>Free tier</td>
+          </tr>
+          <tr>
+            <td>No account required</td>
+            <td class="cgv"><span class="ck">&#10003;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+          </tr>
+          <tr>
+            <td>Code never leaves your machine</td>
+            <td class="cgv"><span class="ck">&#10003;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+          </tr>
+          <tr>
+            <td>AI fix prompts</td>
+            <td class="cgv"><span class="ck">&#10003;</span></td>
+            <td><span class="ck">&#10003;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+          </tr>
+          <tr>
+            <td>Big4-quality PDF report</td>
+            <td class="cgv"><span class="ck">&#10003;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+            <td><span class="ck">&#10003;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+          </tr>
+          <tr>
+            <td>Built for solo &amp; small teams</td>
+            <td class="cgv"><span class="ck">&#10003;</span></td>
+            <td><span class="ck">&#10003;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+          </tr>
+          <tr>
+            <td>Starts at</td>
+            <td class="cgv">$0</td>
+            <td>$5/mo</td>
+            <td>Enterprise</td>
+            <td>Custom</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<!-- SECTION H: COMPARISON TABLE — COMPLETE -->
+
+<!-- SECTION I: PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="pricing-inner">
+    <p class="section-eyebrow centered fade-up">PRICING</p>
+    <h2 class="pricing-heading fade-up">Free forever. Or pay when it pays you back.</h2>
+    <p class="pricing-sub fade-up">Scan unlimited repos for free. Upgrade only when you need branded reports or team features.</p>
+
+    <div class="pricing-grid">
+
+      <!-- Free -->
+      <div class="price-card fade-up">
+        <div class="price-tier">Free</div>
+        <div class="price-amount">$0</div>
+        <div class="price-per">/forever</div>
+        <div class="price-desc">For solo builders and side projects.</div>
+        <ul class="price-features">
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Unlimited scans</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Vibe Score &amp; finding counts</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>AI fix prompts (terminal output)</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>9 security domains</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>CLI tool included</li>
+        </ul>
+        <button class="price-btn secondary" onclick="document.getElementById('scanner').scrollIntoView({behavior:'smooth'})">Start scanning</button>
+      </div>
+
+      <!-- Pro (featured) -->
+      <div class="price-card featured fade-up">
+        <div class="popular-badge">MOST POPULAR</div>
+        <div class="price-tier blue">Pro</div>
+        <div class="price-amount gradient-price">$29</div>
+        <div class="price-per">/month</div>
+        <div class="price-desc">For freelancers, agencies, and small teams.</div>
+        <ul class="price-features">
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Everything in Free, plus:</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>White-label PDF reports (your logo)</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Full findings with file/line details</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Email summaries</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Last 30 reports saved</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Priority support</li>
+        </ul>
+        <button class="price-btn primary">Start Pro</button>
+      </div>
+
+      <!-- Team -->
+      <div class="price-card fade-up">
+        <div class="price-tier">Team</div>
+        <div class="price-amount">$79</div>
+        <div class="price-per">/month</div>
+        <div class="price-desc">For startups shipping client work.</div>
+        <ul class="price-features">
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Everything in Pro, plus:</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Unlimited team seats</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Slack notifications</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>API access for CI/CD</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Custom rule sets</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>Dedicated Slack channel</li>
+        </ul>
+        <button class="price-btn secondary">Contact us</button>
+      </div>
+
+    </div>
+  </div>
+</section>
+<!-- SECTION I: PRICING — COMPLETE -->
+
+<!-- SECTION J: FOUNDER -->
+<section class="founder-section">
+  <div class="founder-inner">
+    <p class="founder-eyebrow fade-up">FROM THE BUILDER</p>
+    <h2 class="founder-heading fade-up">I&#8217;m Sufiyan. I spent 3 years in a Security Operations Center.</h2>
+    <div class="founder-layout">
+      <!-- TODO: replace with actual photo of Sufiyan -->
+      <div class="founder-photo fade-up">
+        <span style="position:relative;z-index:1;">PHOTO</span>
+        <div class="founder-photo-accent"></div>
+      </div>
+      <div class="founder-prose fade-up">
+        <p>I watched enterprise breaches happen from the inside. Most weren&#8217;t sophisticated &#8212; they were boring. Hardcoded API keys. Misconfigured CORS. Auth checks that only ran in the browser. The same patterns, every time.</p>
+        <p>Now AI tools generate those same patterns automatically. Lovable ships 200,000 projects a day. Most have at least one of the issues I used to investigate at 3am.</p>
+        <p>GetVouch is the check I wish every project ran before going live &#8212; whether it&#8217;s a vibe-coded side project or a freelance delivery to a paying client. It&#8217;s free because security shouldn&#8217;t be a paywall. Your code never leaves your machine because you shouldn&#8217;t have to trust me with it.</p>
+        <p>If you scan your repo and find something, DM me on X. I&#8217;ll personally walk you through the fix.</p>
+        <a href="https://x.com/its_n0One" target="_blank" rel="noopener" class="founder-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          @its_n0One &#8594;
         </a>
       </div>
-      <p class="cta-sub"><strong>Free forever.</strong> Open source. No account needed.</p>
     </div>
   </div>
 </section>
+<!-- SECTION J: FOUNDER — COMPLETE -->
 
-<!-- ── FOOTER ────────────────────────────────────────────── -->
+<!-- SECTION K: FINAL CTA -->
+<section class="cta-section" id="cta">
+  <div class="cta-inner">
+    <h2 class="cta-heading fade-up">Scan your repo.<br><span class="gradient-text">Free. No signup.</span></h2>
+    <p class="cta-sub fade-up">Or run it locally &#8212; your code never leaves your machine.</p>
+
+    <!-- CTA scanner (syncs with hero #scanInput) -->
+    <div class="cta-scanner-wrap fade-up">
+      <div class="scanner-outer">
+        <div class="scanner-glow-bg"></div>
+        <div class="scanner-input-container">
+          <svg class="lock-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input
+            id="scanInputCta"
+            class="scanner-input"
+            type="url"
+            placeholder="github.com/your-org/your-repo"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="GitHub repository URL"
+          />
+          <button id="scanBtnCta" class="scanner-btn">Scan <span class="btn-arrow">&#8594;</span></button>
+        </div>
+      </div>
+    </div>
+
+    <p class="cta-cli fade-up">Or run the CLI: &nbsp; pip install getvouch-cli</p>
+  </div>
+</section>
+<!-- SECTION K: FINAL CTA — COMPLETE -->
+
+</main>
+
+<!-- SECTION L: FOOTER -->
 <footer>
   <div class="footer-inner">
-    <div>
-      <div class="footer-brand">Get<span>Vouch</span></div>
-      <div class="footer-meta">Built by a Cybersecurity Analyst &nbsp;·&nbsp; getvouch.ai</div>
+    <div class="footer-grid">
+
+      <!-- Brand column -->
+      <div>
+        <div class="footer-logo">Get<span class="logo-gradient">Vouch</span></div>
+        <p class="footer-tagline">Security audit for AI-generated and human-written code. Free. No signup.</p>
+        <span class="footer-version-pill">v1.4.0</span>
+      </div>
+
+      <!-- Product column -->
+      <div>
+        <div class="footer-col-hd">PRODUCT</div>
+        <div class="footer-links">
+          <a href="#scanner">Web Scanner</a>
+          <a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener">CLI</a>
+          <a href="#">Docs</a>
+          <a href="#">Changelog</a>
+          <a href="#pricing">API</a>
+        </div>
+      </div>
+
+      <!-- Built For column -->
+      <div>
+        <div class="footer-col-hd">BUILT FOR</div>
+        <div class="footer-links">
+          <a href="#scanner">Vibe Coders</a>
+          <a href="#scanner">Freelancers</a>
+          <a href="#pricing">Small Teams</a>
+          <a href="#scanner">Indie Hackers</a>
+        </div>
+      </div>
+
+      <!-- Connect column -->
+      <div>
+        <div class="footer-col-hd">CONNECT</div>
+        <div class="footer-links">
+          <a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener">
+            <i data-lucide="github"></i> GitHub
+          </a>
+          <a href="https://x.com/its_n0One" target="_blank" rel="noopener">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            X / Twitter
+          </a>
+          <a href="mailto:contact@getvouch.net">
+            <i data-lucide="mail"></i> Email
+          </a>
+        </div>
+      </div>
+
     </div>
-    <div class="footer-links">
-      <a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://getvouch.ai" target="_blank" rel="noopener">getvouch.ai</a>
+
+    <!-- Bottom bar -->
+    <div class="footer-bottom">
+      <span class="footer-copy">&#169; 2026 GetVouch &nbsp;&middot;&nbsp; Built in Garland, Texas</span>
+      <div class="footer-legal">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+      </div>
     </div>
-    <div class="footer-right">Your code never leaves your machine</div>
   </div>
 </footer>
+<!-- SECTION L: FOOTER — COMPLETE -->
 
 <script>
-// ── MOBILE NAV ────────────────────────────────────────────
-function toggleNav() {
-  document.getElementById('navLinks').classList.toggle('open');
+// ── LUCIDE ICONS ──────────────────────────────────────────────────────
+lucide.createIcons();
+
+// ── MOBILE NAV ────────────────────────────────────────────────────────
+function toggleNav() { document.getElementById('mobileNav').classList.toggle('open'); }
+function closeNav()  { document.getElementById('mobileNav').classList.remove('open'); }
+
+// ── CHIP AUTOFILL ─────────────────────────────────────────────────────
+function fillChip(path) {
+  var url = 'https://github.com/' + path;
+  document.getElementById('scanInput').value = url;
+  document.getElementById('scanInputCta').value = url;
+  document.getElementById('scanInput').focus();
+  document.getElementById('scanner').scrollIntoView({ behavior: 'smooth' });
 }
-document.addEventListener('click', function(e) {
-  const nav = document.getElementById('navLinks');
-  const burger = document.getElementById('hamburger');
-  if (!nav.contains(e.target) && !burger.contains(e.target)) {
-    nav.classList.remove('open');
+
+// ── CTA SCANNER SYNC ─────────────────────────────────────────────────
+document.getElementById('scanInput').addEventListener('input', function() {
+  document.getElementById('scanInputCta').value = this.value;
+});
+document.getElementById('scanInputCta').addEventListener('input', function() {
+  document.getElementById('scanInput').value = this.value;
+});
+document.getElementById('scanBtnCta').addEventListener('click', function() {
+  var val = document.getElementById('scanInputCta').value.trim();
+  if (val) {
+    document.getElementById('scanInput').value = val;
+    document.getElementById('scanner').scrollIntoView({ behavior: 'smooth' });
+    setTimeout(runScan, 350);
+  }
+});
+document.getElementById('scanInputCta').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    var val = this.value.trim();
+    if (val) {
+      document.getElementById('scanInput').value = val;
+      document.getElementById('scanner').scrollIntoView({ behavior: 'smooth' });
+      setTimeout(runScan, 350);
+    }
   }
 });
 
-// ── SCROLL ANIMATIONS ─────────────────────────────────────
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach((entry, i) => {
-    if (entry.isIntersecting) {
-      setTimeout(() => entry.target.classList.add('in-view'), i * 80);
-      observer.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.1 });
-
-document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
-
-// ── TERMINAL ANIMATION ────────────────────────────────────
-const GITHUB = 'https://github.com/getvouch-ai/vouch-cli';
-
-const lines = [
-  { text: '  GetVouch v1.2.0 \u2014 Security Assessment', cls: 't-accent t-bold', delay: 0 },
-  { text: '  \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550', cls: 't-dim', delay: 60 },
-  { text: '  Scanning  : /Users/founder/my-saas-app', cls: 't-white', delay: 120, typewriter: true },
-  { text: '', cls: '', delay: 400 },
-  { text: '  [+] Scanning src/ ...', cls: 't-dim', delay: 600 },
-  { text: '  [+] Scanning server/ ...', cls: 't-dim', delay: 900 },
-  { text: '  [+] Scanning components/ ...', cls: 't-dim', delay: 1200 },
-  { text: '', cls: '', delay: 1500 },
-  { text: '  \u26a0\ufe0f  CRITICAL  \u2014  OpenAI API Key', cls: 't-red t-bold', delay: 1700 },
-  { text: '     src/utils/ai.js:14', cls: 't-dim', delay: 1850 },
-  { text: '     sk-aBcDeFgHiJkLmNoPqRsTuVwXyZ...', cls: 't-red', delay: 1950 },
-  { text: '', cls: '', delay: 2100 },
-  { text: '  \u26a0\ufe0f  CRITICAL  \u2014  Client-side payment check', cls: 't-red t-bold', delay: 2250 },
-  { text: '     src/components/Paywall.jsx:31', cls: 't-dim', delay: 2400 },
-  { text: '     if (isPaid === true) { unlockApp() }', cls: 't-red', delay: 2500 },
-  { text: '', cls: '', delay: 2650 },
-  { text: '  \u26a0\ufe0f  HIGH      \u2014  CORS wildcard', cls: 't-orange t-bold', delay: 2800 },
-  { text: '     server/index.js:8', cls: 't-dim', delay: 2950 },
-  { text: '     origin: \'*\'', cls: 't-orange', delay: 3050 },
-  { text: '', cls: '', delay: 3200 },
-  { text: '  \u26a0\ufe0f  CRITICAL  \u2014  .env not in .gitignore', cls: 't-red t-bold', delay: 3350 },
-  { text: '', cls: '', delay: 3500 },
-  { text: '  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500', cls: 't-dim', delay: 3600 },
-  { text: '  Secrets found      : 3', cls: 't-white', delay: 3750 },
-  { text: '  Auth risks         : 1', cls: 't-white', delay: 3850 },
-  { text: '  CORS issues        : 1', cls: 't-white', delay: 3950 },
-  { text: '  Env file safety    : 1', cls: 't-white', delay: 4050 },
-  { text: '  Files scanned      : 42', cls: 't-white', delay: 4150 },
-  { text: '', cls: '', delay: 4250 },
-  { text: '  Security Score     : 45/100', cls: 't-red t-bold', delay: 4350 },
-  { text: '  Assessment         : CRITICAL \u2014 Do not ship', cls: 't-red t-bold', delay: 4500 },
-  { text: '', cls: '', delay: 4650 },
-  { text: '  \u2713 Report saved       : getvouch-report.html', cls: 't-green t-bold', delay: 4800 },
-  { text: '  Open in browser to view and download as PDF.', cls: 't-dim', delay: 4950 },
-];
-
-const LOOP_DELAY = 8000;
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-async function typeWriter(el, text, speed = 28) {
-  el.textContent = '';
-  for (let i = 0; i < text.length; i++) {
-    el.textContent += text[i];
-    await sleep(speed);
+// ── FIX PROMPT COPY ───────────────────────────────────────────────────
+function copyFixPrompt(btn) {
+  var box  = btn.closest('.fix-prompt-box');
+  var text = box.querySelector('.fix-prompt-text').innerText || box.querySelector('.fix-prompt-text').textContent;
+  function flash() {
+    btn.textContent = 'Copied';
+    btn.style.background = '#166534';
+    btn.style.color = '#4ade80';
+    setTimeout(function() { btn.textContent = 'Copy'; btn.style.background = ''; btn.style.color = ''; }, 2000);
   }
-}
-
-async function runTerminal() {
-  const body = document.getElementById('terminalBody');
-  const cursor = document.getElementById('termCursor');
-
-  body.innerHTML = '';
-  body.appendChild(cursor);
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const prevDelay = i > 0 ? lines[i - 1].delay : 0;
-    const delta = line.delay - prevDelay;
-    if (delta > 0) await sleep(delta);
-
-    const span = document.createElement('span');
-    span.className = 't-line ' + (line.cls || '');
-
-    if (line.text === '') {
-      span.innerHTML = '&nbsp;';
-    } else if (line.typewriter) {
-      span.textContent = '';
-    } else {
-      span.textContent = line.text;
-    }
-
-    body.insertBefore(span, cursor);
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => span.classList.add('visible'));
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(flash).catch(function() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      flash();
     });
-
-    if (line.typewriter) {
-      await typeWriter(span, line.text, 22);
-    }
-
-    body.scrollTop = body.scrollHeight;
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    flash();
   }
 }
 
-async function terminalLoop() {
-  while (true) {
-    const body = document.getElementById('terminalBody');
-    body.style.minHeight = '480px';
-    await runTerminal();
-    await sleep(LOOP_DELAY);
-  }
-}
-
-terminalLoop();
-
-// ── WEB SCANNER ───────────────────────────────────────────
+// ── SCANNER CORE (PRESERVED VERBATIM) ────────────────────────────────
 const API = 'https://web-production-8cf38.up.railway.app/api/scan';
 
 const CAT_META = {
@@ -1895,8 +2294,8 @@ const SCORE_COLOR = { LOW: '#4ade80', MODERATE: '#fbbf24', HIGH: '#fb923c', CRIT
 const BADGE_CLASS = { LOW: 'badge-low', MODERATE: 'badge-moderate', HIGH: 'badge-high', CRITICAL: 'badge-critical' };
 
 const LOG_LINES = [
-  { text: '  Connecting to GetVouch API...', cls: 'sl-dim',    delay: 0   },
-  { text: '  Downloading repository ZIP...', cls: 'sl-white',  delay: 600 },
+  { text: '  Connecting to GetVouch API...', cls: 'sl-dim',    delay: 0    },
+  { text: '  Downloading repository ZIP...', cls: 'sl-white',  delay: 600  },
   { text: '  Extracting source files...',    cls: 'sl-white',  delay: 1400 },
   { text: '  Scanning for secrets...',       cls: 'sl-accent', delay: 2000 },
   { text: '  Scanning for auth issues...',   cls: 'sl-accent', delay: 2500 },
@@ -1952,12 +2351,10 @@ function renderResults(data) {
   lastScanData = data;
   document.getElementById('downloadReportRow').classList.add('visible');
 
-  // Score
   const scoreEl = document.getElementById('resultScore');
   scoreEl.textContent = data.score;
   scoreEl.style.color = SCORE_COLOR[data.risk_level] || '#fff';
 
-  // Badge
   const badge = document.getElementById('resultBadge');
   badge.textContent = data.risk_level;
   badge.className = 'result-risk-badge ' + (BADGE_CLASS[data.risk_level] || '');
@@ -1966,11 +2363,9 @@ function renderResults(data) {
   document.getElementById('resultFiles').textContent =
     `${data.files_scanned} file${data.files_scanned !== 1 ? 's' : ''} scanned`;
 
-  // Clean state
   const isClean = data.totals.total === 0;
   document.getElementById('resultClean').style.display = isClean ? 'flex' : 'none';
 
-  // Categories
   const container = document.getElementById('resultCategories');
   container.innerHTML = '';
 
@@ -1981,6 +2376,28 @@ function renderResults(data) {
 
       const cat = document.createElement('div');
       cat.className = 'result-cat';
+
+      const findingsHtml = list.map(f => {
+        const fixHtml = f.fix_prompt ? `
+          <div class="fix-prompt-box">
+            <div class="fix-prompt-header">
+              <span class="fix-prompt-label">AI FIX PROMPT</span>
+              <button class="fix-prompt-copy" onclick="copyFixPrompt(this)">Copy</button>
+            </div>
+            <pre class="fix-prompt-text">${escHtml(f.fix_prompt)}</pre>
+            <p class="fix-prompt-hint">Paste into Lovable, Cursor, Bolt, Replit, or Claude Code</p>
+          </div>` : '';
+        return `
+          <div class="result-finding">
+            <span class="finding-sev" style="background:${meta.sb};color:${meta.sc};border:1px solid ${meta.sc}40">
+              ${meta.sev}
+            </span>
+            <span class="result-finding-type">${escHtml(f.type)}</span>
+            <span class="result-finding-loc">${escHtml(f.file)}${f.line !== '-' ? ':' + f.line : ''}</span>
+            ${f.snippet ? `<span class="result-finding-snippet">${escHtml(f.snippet)}</span>` : ''}
+          </div>${fixHtml}`;
+      }).join('');
+
       cat.innerHTML = `
         <div class="result-cat-header" onclick="toggleCat(this.parentElement)">
           <span class="result-cat-name">${meta.label}</span>
@@ -1988,24 +2405,12 @@ function renderResults(data) {
                 style="background:${meta.sb};color:${meta.sc};border:1px solid ${meta.sc}40">
             ${list.length} ${meta.sev}
           </span>
-          <span class="result-cat-chevron">▼</span>
+          <span class="result-cat-chevron">&#9660;</span>
         </div>
-        <div class="result-cat-body">
-          ${list.map(f => `
-            <div class="result-finding">
-              <span class="finding-sev" style="background:${meta.sb};color:${meta.sc};border:1px solid ${meta.sc}40">
-                ${meta.sev}
-              </span>
-              <span class="result-finding-type">${escHtml(f.type)}</span>
-              <span class="result-finding-loc">${escHtml(f.file)}${f.line !== '-' ? ':' + f.line : ''}</span>
-              ${f.snippet ? `<span class="result-finding-snippet">${escHtml(f.snippet)}</span>` : ''}
-            </div>
-          `).join('')}
-        </div>`;
+        <div class="result-cat-body">${findingsHtml}</div>`;
       container.appendChild(cat);
     }
 
-    // Auto-open the first category
     const first = container.querySelector('.result-cat');
     if (first) first.classList.add('open');
   }
@@ -2055,13 +2460,11 @@ async function runScan() {
   }
 }
 
-// Allow Enter key to trigger scan
 document.getElementById('scanInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') runScan();
 });
 
-
-// ── REPORT DOWNLOAD ───────────────────────────────────────
+// ── REPORT DOWNLOAD ───────────────────────────────────────────────────
 function downloadReport() {
   if (!lastScanData) return;
   const html = generateReportHtml(lastScanData);
@@ -2226,7 +2629,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="page">
 <div class="cover">
 <div class="cover-top">
-<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.2.0 — Web Scanner</div></div>
+<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.4.0 — Web Scanner</div></div>
 <div class="confidential">Confidential</div>
 </div>
 <h1>Security Assessment Report</h1>
@@ -2240,14 +2643,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div><span class="meta-label">Overall Risk</span><span class="meta-value" style="color:${scoreColor};">${data.risk_level}</span></div>
 </div>
 </div>
-
 <div class="body">
 <div class="section">
 <div class="section-label">01 — Executive Summary</div>
 <div class="exec-box"><p style="font-size:14px;color:#374151;line-height:1.7;">${execSummary}</p></div>
-<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.2.0 automated static analysis, scanning ${data.files_scanned} files across 9 security domains including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, environment safety, dependency analysis, input validation, and insecure object references.</p>
+<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.4.0 automated static analysis, scanning ${data.files_scanned} files across 9 security domains including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, environment safety, dependency analysis, input validation, and insecure object references.</p>
 </div>
-
 <div class="section">
 <div class="section-label">02 — Risk Score</div>
 <div class="score-grid">
@@ -2270,19 +2671,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 </div>
 </div>
 </div>
-
 <div class="section">
 <div class="section-label">03 — Detailed Findings</div>
-${buildTable(sf,  'Exposed Credentials and API Keys',            'CRITICAL','#dc2626','#fef2f2','Hardcoded credentials found in source files. These must be rotated and removed immediately.')}
-${buildTable(af,  'Client-Side Authentication Vulnerabilities',  'CRITICAL','#dc2626','#fef2f2','Authorization logic in client-side code can be bypassed by any user using browser developer tools.')}
-${buildTable(qf,  'SQL Injection Vulnerabilities',               'HIGH',    '#ea580c','#fff7ed','User-controlled input in database queries enables attackers to manipulate or destroy database contents.')}
-${buildTable(cf,  'CORS Misconfiguration',                       'HIGH',    '#ea580c','#fff7ed','Overly permissive CORS configuration allows any website to make authenticated requests to your API.')}
-${buildTable(ef,  'Environment File Safety',                     'CRITICAL','#dc2626','#fef2f2','Environment files containing secrets are not protected from being committed to version control.')}
-${buildTable(vf,  'Missing Input Validation',                    'HIGH',    '#ea580c','#fff7ed','User input is processed without validation or sanitization, enabling injection and manipulation attacks.')}
-${buildTable(idf, 'Insecure Direct Object Reference',            'HIGH',    '#ea580c','#fff7ed','User-controlled IDs used to access resources without authorization checks allow users to access others data.')}
-${buildTable(df,  'Dependency and Configuration Issues',         'MEDIUM',  '#ca8a04','#fefce8','Configuration issues and localhost references that may cause failures or expose information in production.')}
+${buildTable(sf,  'Exposed Credentials and API Keys',           'CRITICAL','#dc2626','#fef2f2','Hardcoded credentials found in source files. These must be rotated and removed immediately.')}
+${buildTable(af,  'Client-Side Authentication Vulnerabilities', 'CRITICAL','#dc2626','#fef2f2','Authorization logic in client-side code can be bypassed by any user using browser developer tools.')}
+${buildTable(qf,  'SQL Injection Vulnerabilities',              'HIGH',    '#ea580c','#fff7ed','User-controlled input in database queries enables attackers to manipulate or destroy database contents.')}
+${buildTable(cf,  'CORS Misconfiguration',                      'HIGH',    '#ea580c','#fff7ed','Overly permissive CORS configuration allows any website to make authenticated requests to your API.')}
+${buildTable(ef,  'Environment File Safety',                    'CRITICAL','#dc2626','#fef2f2','Environment files containing secrets are not protected from being committed to version control.')}
+${buildTable(vf,  'Missing Input Validation',                   'HIGH',    '#ea580c','#fff7ed','User input is processed without validation or sanitization, enabling injection and manipulation attacks.')}
+${buildTable(idf, 'Insecure Direct Object Reference',           'HIGH',    '#ea580c','#fff7ed','User-controlled IDs used to access resources without authorization checks allow users to access others data.')}
+${buildTable(df,  'Dependency and Configuration Issues',        'MEDIUM',  '#ca8a04','#fefce8','Configuration issues and localhost references that may cause failures or expose information in production.')}
 </div>
-
 <div class="section">
 <div class="section-label">04 — Remediation Guidance</div>
 <p style="font-size:13px;color:#6b7280;margin-bottom:14px;line-height:1.7;">Remediation steps listed in order of priority. Critical findings must be addressed before any production deployment or user onboarding.</p>
@@ -2295,36 +2694,107 @@ ${buildTable(df,  'Dependency and Configuration Issues',         'MEDIUM',  '#ca
 <tbody>${remediationRows || '<tr><td colspan="3" style="padding:16px;text-align:center;color:#16a34a;font-weight:500;">No remediation required — codebase is clean.</td></tr>'}</tbody>
 </table>
 </div>
-
 <div class="section" style="background:#f9fafb;border-radius:8px;padding:22px;border:1px solid #e5e7eb;">
 <div class="section-label">05 — Disclaimer</div>
-<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.2.0 automated static analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
+<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.4.0 automated static analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
 </div>
-
 <div class="print-btn">
 <button onclick="window.print()">Save as PDF</button>
 <p>In the print dialog — select Save as PDF</p>
 </div>
 </div>
-
 <div class="footer">
 <div class="footer-brand">Prepared by <strong>GetVouch Security</strong> &nbsp;|&nbsp; getvouch.net</div>
-<div class="footer-note">GetVouch v1.2.0 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
+<div class="footer-note">GetVouch v1.4.0 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
 </div>
 </div>
 </body>
 </html>`;
 }
 
-// ── NAVBAR SCROLL EFFECT ──────────────────────────────────
-window.addEventListener('scroll', function() {
-  const nav = document.querySelector('nav');
-  if (window.scrollY > 20) {
-    nav.style.borderBottomColor = 'rgba(255,255,255,0.1)';
-  } else {
-    nav.style.borderBottomColor = 'rgba(255,255,255,0.07)';
-  }
-});
+// ── HERO SCORE RING — animate on load ────────────────────────────────
+setTimeout(function() {
+  var ring = document.querySelector('.hero-score-ring');
+  if (ring) ring.classList.add('animate');
+}, 600);
+
+// ── INTERSECTION OBSERVER: fade-up elements ───────────────────────────
+(function() {
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-up').forEach(function(el) {
+    observer.observe(el);
+  });
+})();
+
+// ── DEMO SECTION: terminal animation + score ring ─────────────────────
+var demoAnimated = false;
+var demoLines = [
+  { text: '$ getvouch scan https://github.com/example/app', cls: 'term-cmd' },
+  { text: 'Cloning repository...', cls: 'term-dim' },
+  { text: '✓ Cloned in 1.2s — 47 files', cls: 'term-ok' },
+  { text: '', cls: 'term-empty' },
+  { text: 'Scanning 9 security domains...', cls: 'term-dim' },
+  { text: '[████████████████████] 100%', cls: 'term-bar' },
+  { text: '', cls: 'term-empty' },
+  { text: '✓ Secrets scan complete', cls: 'term-ok' },
+  { text: '✗ Found: OpenAI API key in src/config.js:14', cls: 'term-err' },
+  { text: '✓ Auth scan complete', cls: 'term-ok' },
+  { text: '✗ Found: Missing CORS validation', cls: 'term-err' },
+  { text: '✓ SQL injection scan complete', cls: 'term-ok' },
+  { text: '✓ CORS scan complete', cls: 'term-ok' },
+  { text: '✗ Found: 1 IDOR in /api/users/[id]', cls: 'term-err' },
+  { text: '✓ Environment scan complete', cls: 'term-ok' },
+  { text: '✓ Input validation complete', cls: 'term-ok' },
+  { text: '✓ Dependency check complete', cls: 'term-ok' },
+  { text: '', cls: 'term-empty' },
+  { text: 'Vibe Score: 72/100', cls: 'term-score' },
+  { text: 'Generating AI Fix Prompts...', cls: 'term-dim' },
+  { text: '✓ 3 prompts ready', cls: 'term-ok' },
+  { text: '✓ Executive PDF report generated', cls: 'term-ok' },
+];
+
+function startDemoAnimation() {
+  var terminal = document.getElementById('demoTerminal');
+  if (!terminal) return;
+  terminal.innerHTML = '';
+  var delay = 0;
+  demoLines.forEach(function(line, i) {
+    delay += (i === 0 ? 0 : 200);
+    setTimeout(function() {
+      var span = document.createElement('span');
+      span.className = line.cls || 'term-line';
+      span.textContent = line.text;
+      terminal.appendChild(span);
+    }, delay);
+  });
+  // Animate demo score ring
+  setTimeout(function() {
+    var ring = document.querySelector('.demo-score-ring');
+    if (ring) ring.classList.add('animate');
+  }, delay + 200);
+}
+
+(function() {
+  var demoSection = document.querySelector('.demo-section');
+  if (!demoSection) return;
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting && !demoAnimated) {
+        demoAnimated = true;
+        startDemoAnimation();
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.2 });
+  observer.observe(demoSection);
+})();
 </script>
 </body>
 </html>
