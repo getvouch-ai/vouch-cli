@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from getvouch.scanner import scan_directory
 
 # ── App ───────────────────────────────────────────────────────────────
-app = FastAPI(title="GetVouch API", version="1.3.0")
+app = FastAPI(title="GetVouch API", version="1.4.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,7 +64,7 @@ def index():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "1.3.0"}
+    return {"status": "ok", "version": "1.4.1"}
 
 
 @app.post("/api/scan")
