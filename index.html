@@ -2519,7 +2519,10 @@ function generateReportHtml(data) {
   }
   function buildTable(list, title, sev, sc, sb, desc) {
     if (!list.length) return `<div style="margin-bottom:28px;"><h3 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">${title}</h3><div style="background:#f9fafb;border-radius:6px;padding:14px;text-align:center;color:#16a34a;font-size:13px;font-weight:500;">No issues detected.</div></div>`;
-    const rows = list.map((f, i) => `<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:10px 14px;font-size:13px;color:#6b7280;vertical-align:top;">${i+1}</td><td style="padding:10px 14px;vertical-align:top;">${badge(sev,sc,sb)}</td><td style="padding:10px 14px;font-size:13px;color:#111827;font-weight:500;vertical-align:top;">${esc(f.type)}</td><td style="padding:10px 14px;font-size:11px;color:#6b7280;font-family:monospace;vertical-align:top;max-width:200px;word-break:break-all;">${esc(f.file)}</td><td style="padding:10px 14px;font-size:12px;color:#374151;text-align:center;vertical-align:top;">${esc(f.line||'-')}</td><td style="padding:10px 14px;font-size:11px;color:#6b7280;font-family:monospace;vertical-align:top;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.snippet||'')}</td></tr>`).join('');
+    const rows = list.map((f, i) => {
+      const fixRow = f.fix_prompt ? `<tr style="background:#f8fafc;"><td colspan="6" style="padding:0;"><div style="margin:8px 12px 16px 12px;padding:16px;background:#0f172a;color:#e2e8f0;border-radius:8px;font-family:'JetBrains Mono',Menlo,monospace;font-size:12px;line-height:1.6;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><span style="color:#60a5fa;font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;">AI FIX PROMPT</span><button onclick="copyReportPrompt(this)" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">Copy</button></div><pre style="white-space:pre-wrap;color:#cbd5e1;margin:0;">${esc(f.fix_prompt)}</pre><p style="font-size:10px;color:#64748b;margin:10px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Paste this into Lovable, Cursor, Bolt, Replit, or Claude Code</p></div></td></tr>` : '';
+      return `<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:10px 14px;font-size:13px;color:#6b7280;vertical-align:top;">${i+1}</td><td style="padding:10px 14px;vertical-align:top;">${badge(sev,sc,sb)}</td><td style="padding:10px 14px;font-size:13px;color:#111827;font-weight:500;vertical-align:top;">${esc(f.type)}</td><td style="padding:10px 14px;font-size:11px;color:#6b7280;font-family:monospace;vertical-align:top;max-width:200px;word-break:break-all;">${esc(f.file)}</td><td style="padding:10px 14px;font-size:12px;color:#374151;text-align:center;vertical-align:top;">${esc(f.line||'-')}</td><td style="padding:10px 14px;font-size:11px;color:#6b7280;font-family:monospace;vertical-align:top;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.snippet||'')}</td></tr>${fixRow}`;
+    }).join('');
     return `<div style="margin-bottom:28px;"><h3 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:4px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">${title}</h3><p style="font-size:12px;color:#6b7280;margin-bottom:10px;line-height:1.6;">${desc}</p><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:600px;"><thead><tr style="background:#f9fafb;"><th style="padding:8px 14px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;width:30px;">#</th><th style="padding:8px 14px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;width:80px;">Severity</th><th style="padding:8px 14px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Finding</th><th style="padding:8px 14px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">File</th><th style="padding:8px 14px;text-align:center;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;width:50px;">Line</th><th style="padding:8px 14px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Code</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
 
@@ -2708,6 +2711,23 @@ ${buildTable(df,  'Dependency and Configuration Issues',        'MEDIUM',  '#ca8
 <div class="footer-note">GetVouch v1.4.0 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
 </div>
 </div>
+<script>
+function copyReportPrompt(btn) {
+  const pre = btn.parentElement.nextElementSibling;
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerText;
+    btn.innerText = 'Copied';
+    btn.style.background = '#16a34a';
+    btn.style.color = 'white';
+    setTimeout(() => {
+      btn.innerText = orig;
+      btn.style.background = '#1e293b';
+      btn.style.color = '#e2e8f0';
+    }, 2000);
+  });
+}
+</script>
 </body>
 </html>`;
 }
