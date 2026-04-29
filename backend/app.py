@@ -22,12 +22,22 @@ from pydantic import BaseModel
 from getvouch.scanner import scan_directory
 
 # ── App ───────────────────────────────────────────────────────────────
-app = FastAPI(title="GetVouch API", version="1.2.0")
+app = FastAPI(title="GetVouch API", version="1.3.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://getvouch.net", "https://www.getvouch.net"],
-    allow_methods=["GET", "POST"],
+    allow_origins=[
+        "https://getvouch.net",
+        "https://www.getvouch.net",
+        "https://getvouch.pages.dev",
+        "https://getvouch-ai.netlify.app",
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:5500",
+    ],
+    allow_origin_regex=r"https://[a-zA-Z0-9-]+\.getvouch\.pages\.dev$",
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -54,7 +64,7 @@ def index():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "1.2.0"}
+    return {"status": "ok", "version": "1.3.0"}
 
 
 @app.post("/api/scan")
