@@ -14,7 +14,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
@@ -67,8 +67,18 @@ def health():
     return {"status": "ok", "version": "1.4.1"}
 
 
+def _increment_counter(name: str) -> None:
+    try:
+        urllib.request.urlopen(
+            f"https://api.counterapi.dev/v1/getvouch/{name}/up",
+            timeout=3,
+        )
+    except Exception:
+        pass
+
+
 @app.post("/api/scan")
-def scan_repo(req: ScanRequest):
+def scan_repo(req: ScanRequest, background_tasks: BackgroundTasks):
     """
     Download a public GitHub repo as a ZIP archive (no git required),
     extract it to a temp directory, scan it, and return findings JSON.
@@ -98,6 +108,7 @@ def scan_repo(req: ScanRequest):
 
         scan_result = scan_directory(tmpdir)
         scan_result["repo_url"] = f"https://github.com/{owner}/{repo}"
+        background_tasks.add_task(_increment_counter, "scans")
         return JSONResponse(content=scan_result)
 
     except HTTPException:
