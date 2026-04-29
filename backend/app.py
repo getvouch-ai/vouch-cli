@@ -9,12 +9,13 @@ import os
 import re
 import shutil
 import tempfile
+import threading
 import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
@@ -22,7 +23,7 @@ from pydantic import BaseModel
 from getvouch.scanner import scan_directory
 
 # ── App ───────────────────────────────────────────────────────────────
-app = FastAPI(title="GetVouch API", version="1.4.1")
+app = FastAPI(title="GetVouch API", version="1.4.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,7 +65,7 @@ def index():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "1.4.1"}
+    return {"status": "ok", "version": "1.4.2"}
 
 
 def _increment_counter(name: str) -> None:
@@ -78,7 +79,7 @@ def _increment_counter(name: str) -> None:
 
 
 @app.post("/api/scan")
-def scan_repo(req: ScanRequest, background_tasks: BackgroundTasks):
+def scan_repo(req: ScanRequest):
     """
     Download a public GitHub repo as a ZIP archive (no git required),
     extract it to a temp directory, scan it, and return findings JSON.
@@ -108,7 +109,7 @@ def scan_repo(req: ScanRequest, background_tasks: BackgroundTasks):
 
         scan_result = scan_directory(tmpdir)
         scan_result["repo_url"] = f"https://github.com/{owner}/{repo}"
-        background_tasks.add_task(_increment_counter, "scans")
+        threading.Thread(target=_increment_counter, args=("scans",), daemon=True).start()
         return JSONResponse(content=scan_result)
 
     except HTTPException:
