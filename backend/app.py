@@ -9,7 +9,6 @@ import os
 import re
 import shutil
 import tempfile
-import threading
 import urllib.error
 import urllib.request
 import zipfile
@@ -68,28 +67,6 @@ def health():
     return {"status": "ok", "version": "1.4.2"}
 
 
-def _increment_counter(name: str) -> None:
-    try:
-        urllib.request.urlopen(
-            f"https://api.counterapi.dev/v1/getvouch/{name}/up",
-            timeout=10,
-        )
-    except Exception:
-        pass
-
-
-@app.get("/debug/counter", include_in_schema=False)
-def debug_counter():
-    try:
-        with urllib.request.urlopen(
-            "https://api.counterapi.dev/v1/getvouch/scans/",
-            timeout=10,
-        ) as resp:
-            return JSONResponse({"ok": True, "body": resp.read().decode()})
-    except Exception as exc:
-        return JSONResponse({"ok": False, "error": type(exc).__name__, "detail": str(exc)})
-
-
 @app.post("/api/scan")
 def scan_repo(req: ScanRequest):
     """
@@ -121,7 +98,6 @@ def scan_repo(req: ScanRequest):
 
         scan_result = scan_directory(tmpdir)
         scan_result["repo_url"] = f"https://github.com/{owner}/{repo}"
-        threading.Thread(target=_increment_counter, args=("scans",), daemon=True).start()
         return JSONResponse(content=scan_result)
 
     except HTTPException:

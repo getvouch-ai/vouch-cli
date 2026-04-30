@@ -2455,6 +2455,7 @@ async function runScan() {
     }
 
     renderResults(data);
+    fetch('https://api.counterapi.dev/v1/getvouch/scans/up').catch(() => {});
   } catch (err) {
     showError('Could not reach the scanner API. Please try again in a moment.');
   }
