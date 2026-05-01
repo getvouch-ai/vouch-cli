@@ -90,6 +90,18 @@ def generate_fix_prompt(finding: dict, category: str) -> str:
         return _prompt_idor(f_file, f_line, f_snippet, loc)
     elif category == "dependencies":
         return _prompt_dependencies(f_type, f_file, f_line, f_snippet, loc)
+    elif category == "headers":
+        return _prompt_headers(f_type, f_file)
+    elif category == "info_disclosure":
+        return _prompt_info_disclosure(f_snippet, f_file)
+    elif category == "ssl":
+        return _prompt_ssl(f_type, f_file)
+    elif category == "exposed_files":
+        return _prompt_exposed_files(f_file)
+    elif category == "supabase":
+        return _prompt_supabase(f_file, f_snippet)
+    elif category == "admin_paths":
+        return _prompt_admin_paths(f_file)
     return (
         f"Review the security finding at {loc} and apply appropriate controls.\n"
         f"Finding type: {f_type}"
@@ -379,3 +391,213 @@ def _prompt_dependencies(f_type, f_file, f_line, f_snippet, loc):
             f"\n"
             f"Verify: run 'npm audit' again and confirm no high or critical vulnerabilities remain."
         )
+
+
+# ── URL scanner prompts ────────────────────────────────────────────────────
+
+def _prompt_headers(f_type: str, f_file: str) -> str:
+    header = f_type.replace("Missing ", "")
+    recipes = {
+        "Content-Security-Policy": (
+            "Content-Security-Policy: default-src 'self'; script-src 'self'; "
+            "object-src 'none'; base-uri 'self'"
+        ),
+        "X-Frame-Options": "X-Frame-Options: DENY",
+        "Strict-Transport-Security (HSTS)": (
+            "Strict-Transport-Security: max-age=31536000; includeSubDomains"
+        ),
+        "X-Content-Type-Options": "X-Content-Type-Options: nosniff",
+        "Referrer-Policy": "Referrer-Policy: strict-origin-when-cross-origin",
+        "Permissions-Policy": (
+            "Permissions-Policy: camera=(), microphone=(), geolocation=()"
+        ),
+    }
+    value = recipes.get(header, f"{header}: <appropriate-value>")
+    return (
+        f"SECURITY FIX NEEDED — {f_type} at {f_file}\n"
+        f"Risk: browsers receive no {header} directive, enabling related attacks.\n"
+        f"\n"
+        f"Step 1 — Add this header to every response from your server:\n"
+        f"  {value}\n"
+        f"\n"
+        f"Step 2 — Framework-specific locations:\n"
+        f"  Next.js: add to headers() in next.config.js\n"
+        f"  Express: app.use(helmet()) installs all security headers at once\n"
+        f"  Vercel: set in vercel.json under 'headers'\n"
+        f"  Netlify: set in netlify.toml under [[headers]]\n"
+        f"  Cloudflare Pages: set in _headers file at repo root\n"
+        f"\n"
+        f"Step 3 — Check all routes receive the header (use curl -I {f_file}).\n"
+        f"\n"
+        f"Verify: run curl -sI {f_file} and confirm {header} is present."
+    )
+
+
+def _prompt_info_disclosure(f_snippet: str, f_file: str) -> str:
+    return (
+        f"SECURITY FIX NEEDED — Server version leaked in HTTP headers at {f_file}\n"
+        f"Issue: {f_snippet}\n"
+        f"Risk: version strings let attackers look up CVEs for your exact stack.\n"
+        f"\n"
+        f"Step 1 — Remove or mask the header at the web server level:\n"
+        f"  Nginx:   server_tokens off;\n"
+        f"  Apache:  ServerTokens Prod\n"
+        f"  Express: app.disable('x-powered-by') or use helmet()\n"
+        f"  Next.js: add 'poweredByHeader: false' in next.config.js\n"
+        f"\n"
+        f"Step 2 — If behind a CDN or load balancer (Cloudflare, Vercel, Railway),\n"
+        f"check their header-stripping options — most proxy layers can remove this.\n"
+        f"\n"
+        f"Verify: curl -sI {f_file} and confirm the version string is gone."
+    )
+
+
+def _prompt_ssl(f_type: str, f_file: str) -> str:
+    if f_type == "No HTTPS":
+        return (
+            f"SECURITY FIX NEEDED — Site is served over HTTP at {f_file}\n"
+            f"Risk: all traffic (including passwords and tokens) is transmitted in plaintext.\n"
+            f"\n"
+            f"Step 1 — Enable HTTPS on your host:\n"
+            f"  Vercel / Netlify / Cloudflare Pages: HTTPS is automatic — check your domain config.\n"
+            f"  Railway / Render: use the provided HTTPS domain or configure a custom domain with TLS.\n"
+            f"  VPS (Nginx/Apache): run 'certbot --nginx' or 'certbot --apache' (free Let's Encrypt cert).\n"
+            f"\n"
+            f"Step 2 — Redirect all HTTP traffic to HTTPS:\n"
+            f"  Nginx: return 301 https://$host$request_uri;\n"
+            f"  Express: use the 'express-force-ssl' package or a reverse proxy rule.\n"
+            f"\n"
+            f"Step 3 — Add HSTS once HTTPS is confirmed working:\n"
+            f"  Strict-Transport-Security: max-age=31536000; includeSubDomains\n"
+            f"\n"
+            f"Verify: curl -I http://{f_file.split('//')[-1]} confirms a 301 redirect to https://."
+        )
+    if "Expiring" in f_type:
+        return (
+            f"SECURITY FIX NEEDED — SSL certificate expiring soon at {f_file}\n"
+            f"Risk: browsers will show a security warning when it expires, blocking all users.\n"
+            f"\n"
+            f"Step 1 — Renew the certificate immediately:\n"
+            f"  Let's Encrypt (certbot): certbot renew\n"
+            f"  Cloudflare / Vercel / Netlify: renewal is automatic — check your domain settings.\n"
+            f"  Purchased cert: contact your CA and follow their renewal process.\n"
+            f"\n"
+            f"Step 2 — Enable auto-renewal to prevent recurrence:\n"
+            f"  certbot: add 'certbot renew' to a daily cron job\n"
+            f"  crontab: 0 0 * * * certbot renew --quiet\n"
+            f"\n"
+            f"Verify: openssl s_client -connect {f_file.split('//')[-1].split('/')[0]}:443 "
+            f"</dev/null 2>/dev/null | openssl x509 -noout -dates"
+        )
+    return (
+        f"SECURITY FIX NEEDED — SSL certificate error at {f_file}\n"
+        f"Risk: browsers will block access and users will see a security warning.\n"
+        f"\n"
+        f"Step 1 — Identify the error type (hostname mismatch, expired, self-signed):\n"
+        f"  openssl s_client -connect {f_file.split('//')[-1].split('/')[0]}:443\n"
+        f"\n"
+        f"Step 2 — For hostname mismatch: ensure the certificate's CN or SAN includes\n"
+        f"  your exact domain (including www. if applicable).\n"
+        f"\n"
+        f"Step 3 — Replace with a valid certificate. Free option:\n"
+        f"  certbot certonly --standalone -d yourdomain.com\n"
+        f"\n"
+        f"Verify: run the openssl command again and confirm no errors appear."
+    )
+
+
+def _prompt_exposed_files(f_file: str) -> str:
+    path = f_file.split("/", 3)[-1] if "/" in f_file else f_file
+    is_env  = ".env" in path
+    is_git  = ".git" in path
+    is_sql  = ".sql" in path or "backup" in path
+    if is_env:
+        action = (
+            "This file contains secret keys. Rotate ALL credentials inside it immediately\n"
+            "at their respective provider dashboards before fixing the exposure."
+        )
+    elif is_git:
+        action = (
+            "Your git history (including deleted secrets) is now public. Rotate any\n"
+            "credentials that ever appeared in a commit."
+        )
+    elif is_sql:
+        action = (
+            "Your database schema and possibly data is exposed. Change all DB passwords\n"
+            "and review what data was in the file."
+        )
+    else:
+        action = "Review the file contents and rotate any credentials found inside."
+    return (
+        f"CRITICAL — Sensitive file exposed at {f_file}\n"
+        f"Risk: {action}\n"
+        f"\n"
+        f"Step 1 — Block access to this path immediately:\n"
+        f"  Nginx:   location ~ /\\.  {{ deny all; }}\n"
+        f"  Apache:  <FilesMatch \"^\\.\">\n"
+        f"             Require all denied\n"
+        f"           </FilesMatch>\n"
+        f"  Vercel:  add to vercel.json 'routes': [{{'src': '/\\.env', 'dest': '/404'}}]\n"
+        f"  Cloudflare: create a firewall rule blocking the path\n"
+        f"\n"
+        f"Step 2 — Confirm the block: curl -I {f_file} should return 403 or 404.\n"
+        f"\n"
+        f"Step 3 — Assume the file was already read. Rotate all secrets inside it."
+    )
+
+
+def _prompt_supabase(f_file: str, f_snippet: str) -> str:
+    return (
+        f"CRITICAL — Supabase Row Level Security (RLS) disabled at {f_file}\n"
+        f"Issue: {f_snippet}\n"
+        f"Risk: any internet user can read (and possibly write) your entire database table\n"
+        f"without logging in. This is a complete data breach.\n"
+        f"\n"
+        f"Step 1 — Enable RLS on the exposed table immediately:\n"
+        f"  In Supabase Dashboard → Table Editor → select the table\n"
+        f"  → RLS tab → 'Enable RLS'\n"
+        f"  Or via SQL: ALTER TABLE public.<table_name> ENABLE ROW LEVEL SECURITY;\n"
+        f"\n"
+        f"Step 2 — Add a policy that controls who can read:\n"
+        f"  -- Allow users to read only their own rows:\n"
+        f"  CREATE POLICY 'Users see own rows' ON public.<table_name>\n"
+        f"    FOR SELECT USING (auth.uid() = user_id);\n"
+        f"\n"
+        f"Step 3 — Check ALL other tables for the same issue:\n"
+        f"  SELECT schemaname, tablename, rowsecurity\n"
+        f"  FROM pg_tables WHERE schemaname = 'public';\n"
+        f"  Any row with rowsecurity = false is exposed.\n"
+        f"\n"
+        f"Step 4 — Rotate the anon key that was exposed in your source code:\n"
+        f"  Supabase Dashboard → Project Settings → API → Regenerate anon key.\n"
+        f"\n"
+        f"Verify: retry the unauthenticated query — it must return 401 or empty rows."
+    )
+
+
+def _prompt_admin_paths(f_file: str) -> str:
+    path = "/" + f_file.split("/", 3)[-1] if "/" in f_file else f_file
+    return (
+        f"SECURITY FIX NEEDED — Admin or debug endpoint exposed at {f_file}\n"
+        f"Risk: unauthenticated access to admin interfaces enables account takeover,\n"
+        f"data manipulation, and infrastructure enumeration.\n"
+        f"\n"
+        f"Step 1 — Determine if this endpoint should be public:\n"
+        f"  Admin panels, Swagger UI, /actuator, /console, /debug → should require auth.\n"
+        f"  If it should not exist at all in production, disable it.\n"
+        f"\n"
+        f"Step 2 — Add authentication if keeping it:\n"
+        f"  Express:  use a middleware that checks req.session.isAdmin\n"
+        f"  FastAPI:  add Depends(require_admin) to the route\n"
+        f"  Spring:   configure .requestMatchers('{path}').hasRole('ADMIN') in SecurityConfig\n"
+        f"\n"
+        f"Step 3 — Consider IP allowlisting for internal-only tools:\n"
+        f"  Nginx:   allow 10.0.0.0/8; deny all;  (inside the location block)\n"
+        f"  Cloudflare: use Access policies to restrict by team email / IP\n"
+        f"\n"
+        f"Step 4 — Disable dev/debug endpoints in production via environment flags:\n"
+        f"  Spring Boot: management.endpoints.web.exposure.include=health (actuator only)\n"
+        f"  Swagger:    conditionally register only when NODE_ENV !== 'production'\n"
+        f"\n"
+        f"Verify: curl -I {f_file} should return 401, 403, or 404 — not 200."
+    )

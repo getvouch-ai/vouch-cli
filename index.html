@@ -1386,7 +1386,7 @@ footer{
               id="scanInput"
               class="scanner-input"
               type="url"
-              placeholder="github.com/your-org/your-repo  or paste a deployed URL"
+              placeholder="https://github.com/your-org/your-repo  or  https://your-app.vercel.app"
               autocomplete="off"
               spellcheck="false"
               aria-label="GitHub repository URL"
@@ -1452,7 +1452,7 @@ footer{
         </div>
 
         <!-- Trust signals -->
-        <p class="hero-trust">9 security domains &nbsp;&middot;&nbsp; 25 secret patterns &nbsp;&middot;&nbsp; 0 accounts &nbsp;&middot;&nbsp; 0 bytes leave your machine</p>
+        <p class="hero-trust">17 security checks &nbsp;&middot;&nbsp; 25 secret patterns &nbsp;&middot;&nbsp; GitHub repos + live URLs &nbsp;&middot;&nbsp; 0 accounts</p>
 
       </div><!-- /hero-left -->
 
@@ -1712,10 +1712,11 @@ footer{
 <!-- SECTION E: FEATURE CARDS -->
 <section class="features-section">
   <div class="features-inner">
-    <p class="section-eyebrow centered fade-up">NINE SECURITY DOMAINS</p>
+    <p class="section-eyebrow centered fade-up">17 SECURITY CHECKS</p>
     <h2 class="features-heading fade-up">We catch what your AI tool ships.</h2>
-    <p class="features-sub fade-up">Every scan covers nine categories. Every finding includes a fix prompt for your AI tool.</p>
+    <p class="features-sub fade-up">Every scan covers 17 checks across GitHub repos and live URLs. Every finding includes a fix prompt for your AI tool.</p>
 
+    <p class="features-group-label fade-up" style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:#94a3b8;margin:32px 0 16px;text-align:center;">GitHub Repository Scanning</p>
     <div class="features-grid">
 
       <!-- 1: Exposed Secrets -->
@@ -1791,6 +1792,75 @@ footer{
       </div>
 
     </div><!-- /features-grid -->
+
+    <p class="features-group-label fade-up" style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:#94a3b8;margin:48px 0 16px;text-align:center;">Live URL Scanning</p>
+    <div class="features-grid">
+
+      <!-- URL 1: Security Headers -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="shield-check"></i></div>
+        <div class="feature-title">Security Headers</div>
+        <p class="feature-desc">Flags absent security headers that leave browsers without CSP, HSTS, and frame protection directives.</p>
+        <div class="feature-snippet"><code>Content-Security-Policy: absent // &#9888; no CSP</code></div>
+      </div>
+
+      <!-- URL 2: Information Disclosure -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="info"></i></div>
+        <div class="feature-title">Information Disclosure</div>
+        <p class="feature-desc">Detects version strings in HTTP headers that help attackers fingerprint your stack.</p>
+        <div class="feature-snippet"><code>X-Powered-By: Express 4.18.2 // &#9888; leaked</code></div>
+      </div>
+
+      <!-- URL 3: SSL / TLS -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="lock"></i></div>
+        <div class="feature-title">SSL / TLS</div>
+        <p class="feature-desc">Verifies HTTPS is active and the TLS certificate is valid and not nearing expiry.</p>
+        <div class="feature-snippet"><code>cert expires in 3 days // &#9888; renew immediately</code></div>
+      </div>
+
+      <!-- URL 4: Exposed Sensitive Files -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="file-x"></i></div>
+        <div class="feature-title">Exposed Sensitive Files</div>
+        <p class="feature-desc">Probes 15 common paths for .env, .git, and database files accessible to the public.</p>
+        <div class="feature-snippet"><code>/.env &#8594; HTTP 200 // &#9888; publicly readable</code></div>
+      </div>
+
+      <!-- URL 5: Secrets in Source -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="key-round"></i></div>
+        <div class="feature-title">Secrets in Source</div>
+        <p class="feature-desc">Runs 25 secret patterns against your live page HTML and every linked JavaScript bundle.</p>
+        <div class="feature-snippet"><code>apiKey: "sk-proj-..." // &#9888; in bundle.js</code></div>
+      </div>
+
+      <!-- URL 6: Supabase RLS -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="database-zap"></i></div>
+        <div class="feature-title">Supabase RLS</div>
+        <p class="feature-desc">Finds Supabase credentials in source and tests whether unauthenticated queries return real data.</p>
+        <div class="feature-snippet"><code>unauthenticated SELECT returned 42 rows &#9888;</code></div>
+      </div>
+
+      <!-- URL 7: CORS Live Test -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="globe"></i></div>
+        <div class="feature-title">CORS Live Test</div>
+        <p class="feature-desc">Sends a hostile Origin to discovered API paths and flags wildcard or reflected CORS responses.</p>
+        <div class="feature-snippet"><code>Access-Control-Allow-Origin: * // &#9888;</code></div>
+      </div>
+
+      <!-- URL 8: Exposed Admin Paths -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="door-open"></i></div>
+        <div class="feature-title">Exposed Admin Paths</div>
+        <p class="feature-desc">Checks common admin, debug, and API-docs endpoints for unauthenticated HTTP 200 responses.</p>
+        <div class="feature-snippet"><code>/admin &#8594; HTTP 200 // &#9888; no auth required</code></div>
+      </div>
+
+    </div><!-- /url-grid -->
   </div>
 </section>
 <!-- SECTION E: FEATURE CARDS — COMPLETE -->
@@ -2037,7 +2107,7 @@ footer{
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>Unlimited scans</li>
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>Vibe Score &amp; finding counts</li>
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>AI fix prompts (terminal output)</li>
-          <li class="price-feat"><span class="price-feat-check">&#10003;</span>9 security domains</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>17 security checks</li>
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>CLI tool included</li>
         </ul>
         <button class="price-btn secondary" onclick="document.getElementById('scanner').scrollIntoView({behavior:'smooth'})">Start scanning</button>
@@ -2287,7 +2357,13 @@ const CAT_META = {
   env:          { label: 'Env File Exposure',            sev: 'CRITICAL', sc: '#f87171', sb: 'rgba(239,68,68,0.12)'  },
   validation:   { label: 'Missing Input Validation',     sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
   idor:         { label: 'Insecure Object References',   sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
-  dependencies: { label: 'Dependencies & Config Issues', sev: 'MEDIUM',   sc: '#fbbf24', sb: 'rgba(234,179,8,0.12)'  },
+  dependencies:    { label: 'Dependencies & Config Issues', sev: 'MEDIUM',   sc: '#fbbf24', sb: 'rgba(234,179,8,0.12)'  },
+  headers:         { label: 'Missing Security Headers',     sev: 'MEDIUM',   sc: '#fbbf24', sb: 'rgba(234,179,8,0.12)'  },
+  info_disclosure: { label: 'Information Disclosure',       sev: 'LOW',      sc: '#4ade80', sb: 'rgba(74,222,128,0.12)' },
+  ssl:             { label: 'SSL / TLS Issues',             sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
+  supabase:        { label: 'Supabase RLS Disabled',        sev: 'CRITICAL', sc: '#f87171', sb: 'rgba(239,68,68,0.12)'  },
+  exposed_files:   { label: 'Exposed Sensitive Files',      sev: 'CRITICAL', sc: '#f87171', sb: 'rgba(239,68,68,0.12)'  },
+  admin_paths:     { label: 'Exposed Admin / Debug Paths',  sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
 };
 
 const SCORE_COLOR = { LOW: '#4ade80', MODERATE: '#fbbf24', HIGH: '#fb923c', CRITICAL: '#f87171' };
@@ -2651,7 +2727,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="section">
 <div class="section-label">01 — Executive Summary</div>
 <div class="exec-box"><p style="font-size:14px;color:#374151;line-height:1.7;">${execSummary}</p></div>
-<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.4.0 automated static analysis, scanning ${data.files_scanned} files across 9 security domains including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, environment safety, dependency analysis, input validation, and insecure object references.</p>
+<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.5.0 automated analysis, scanning ${data.files_scanned} files/URLs across 17 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, exposed sensitive files, admin paths, and security headers.</p>
 </div>
 <div class="section">
 <div class="section-label">02 — Risk Score</div>
@@ -2761,7 +2837,7 @@ var demoLines = [
   { text: 'Cloning repository...', cls: 'term-dim' },
   { text: '✓ Cloned in 1.2s — 47 files', cls: 'term-ok' },
   { text: '', cls: 'term-empty' },
-  { text: 'Scanning 9 security domains...', cls: 'term-dim' },
+  { text: 'Scanning 17 security checks...', cls: 'term-dim' },
   { text: '[████████████████████] 100%', cls: 'term-bar' },
   { text: '', cls: 'term-empty' },
   { text: '✓ Secrets scan complete', cls: 'term-ok' },

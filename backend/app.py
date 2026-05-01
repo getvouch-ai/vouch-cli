@@ -20,9 +20,10 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 from getvouch.scanner import scan_directory
+from getvouch.url_scanner import scan_url
 
 # ── App ───────────────────────────────────────────────────────────────
-app = FastAPI(title="GetVouch API", version="1.4.2")
+app = FastAPI(title="GetVouch API", version="1.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,8 +44,9 @@ app.add_middleware(
 
 # ── Constants ─────────────────────────────────────────────────────────
 _GITHUB_RE = re.compile(
-    r'^https://github\.com/([A-Za-z0-9_.\-]+)/([A-Za-z0-9_.\-]+?)(?:\.git)?$'
+    r'^https?://(?:www\.)?github\.com/([A-Za-z0-9_.\-]+)/([A-Za-z0-9_.\-]+?)(?:\.git)?/?$'
 )
+_URL_RE = re.compile(r'^https?://.+')
 DOWNLOAD_TIMEOUT_SECS = 60
 MAX_ZIP_BYTES         = 50 * 1024 * 1024   # 50 MB hard cap
 
@@ -64,25 +66,37 @@ def index():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "1.4.2"}
+    return {"status": "ok", "version": "1.5.0"}
 
 
 @app.post("/api/scan")
 def scan_repo(req: ScanRequest):
     """
-    Download a public GitHub repo as a ZIP archive (no git required),
-    extract it to a temp directory, scan it, and return findings JSON.
+    Auto-detects input type:
+      - GitHub repo URL  → download ZIP, static scan
+      - Any other URL    → live URL security scan (8 checks)
 
     Body:   { "repo_url": "https://github.com/owner/repo" }
+         or { "repo_url": "https://yourapp.vercel.app" }
     """
     url = req.repo_url.strip().rstrip("/")
 
+    # ── Route: live URL scan ──────────────────────────────────────────
+    if _URL_RE.match(url) and not _GITHUB_RE.match(url):
+        try:
+            result = scan_url(url)
+            return JSONResponse(content=result)
+        except Exception as exc:
+            raise HTTPException(status_code=500,
+                                detail=f"URL scan failed: {str(exc)}")
+
+    # ── Route: GitHub repo scan ───────────────────────────────────────
     m = _GITHUB_RE.match(url)
     if not m:
         raise HTTPException(
             status_code=400,
-            detail="Only public GitHub URLs are supported "
-                   "(https://github.com/owner/repo).",
+            detail="Enter a GitHub repo URL (https://github.com/owner/repo) "
+                   "or a live site URL (https://yourapp.vercel.app).",
         )
 
     owner, repo = m.group(1), m.group(2)
