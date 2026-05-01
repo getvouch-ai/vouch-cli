@@ -85,6 +85,44 @@ def generate_html_report(findings_data, files_scanned,
         rows = ""
         for i, f in enumerate(findings, 1):
             snippet = f.get("snippet", "")
+            fix_prompt = f.get("fix_prompt", "")
+            prompt_id = f"prompt-{title[:8].replace(' ', '')}-{i}"
+            fix_row = ""
+            if fix_prompt:
+                escaped_prompt = (fix_prompt
+                                  .replace("&", "&amp;")
+                                  .replace("<", "&lt;")
+                                  .replace(">", "&gt;")
+                                  .replace('"', "&quot;"))
+                fix_row = (
+                    f"<tr style='background:#f8faff;"
+                    f"border-bottom:2px solid #e5e7eb;'>"
+                    f"<td colspan='6' style='padding:0;'>"
+                    f"<div style='border-left:3px solid #3b82f6;"
+                    f"margin:0 14px 12px 14px;border-radius:0 6px 6px 0;"
+                    f"background:#f0f6ff;overflow:hidden;'>"
+                    f"<div style='display:flex;align-items:center;"
+                    f"justify-content:space-between;"
+                    f"padding:8px 14px;background:#dbeafe;"
+                    f"border-bottom:1px solid #bfdbfe;'>"
+                    f"<span style='font-size:11px;font-weight:700;"
+                    f"color:#1d4ed8;text-transform:uppercase;"
+                    f"letter-spacing:0.06em;'>AI Fix Prompt</span>"
+                    f"<button onclick=\"copyPrompt('{prompt_id}')\" "
+                    f"style='font-size:11px;font-weight:600;"
+                    f"color:#1d4ed8;background:white;"
+                    f"border:1px solid #93c5fd;border-radius:4px;"
+                    f"padding:3px 10px;cursor:pointer;"
+                    f"font-family:inherit;'>Copy</button>"
+                    f"</div>"
+                    f"<pre id='{prompt_id}' "
+                    f"style='margin:0;padding:12px 14px;"
+                    f"font-size:11px;line-height:1.6;"
+                    f"color:#1e3a5f;font-family:monospace;"
+                    f"white-space:pre-wrap;word-break:break-word;"
+                    f"overflow-x:auto;'>{escaped_prompt}</pre>"
+                    f"</div></td></tr>"
+                )
             rows += (
                 f"<tr style='border-bottom:1px solid #f3f4f6;'>"
                 f"<td style='padding:10px 14px;font-size:13px;"
@@ -107,6 +145,7 @@ def generate_html_report(findings_data, files_scanned,
                 f"overflow:hidden;text-overflow:ellipsis;"
                 f"white-space:nowrap;'>{snippet}</td>"
                 f"</tr>"
+                f"{fix_row}"
             )
         return (
             f"<div style='margin-bottom:28px;'>"
@@ -502,6 +541,24 @@ body{{background:white;}}
 .print-btn{{display:none;}}
 }}
 </style>
+<script>
+function copyPrompt(id) {{
+  var el = document.getElementById(id);
+  if (!el) return;
+  var text = el.innerText || el.textContent;
+  navigator.clipboard.writeText(text).then(function() {{
+    var btn = el.parentElement.parentElement.querySelector('button');
+    if (btn) {{ btn.textContent = 'Copied!'; setTimeout(function(){{btn.textContent='Copy';}},2000); }}
+  }}).catch(function() {{
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    var btn = el.parentElement.parentElement.querySelector('button');
+    if (btn) {{ btn.textContent = 'Copied!'; setTimeout(function(){{btn.textContent='Copy';}},2000); }}
+  }});
+}}
+</script>
 </head>
 <body>
 <div class='page'>
@@ -509,7 +566,7 @@ body{{background:white;}}
 <div class='cover-top'>
 <div>
 <div class='logo'>Get<span>Vouch</span></div>
-<div class='version'>v1.2.0 — Enterprise Edition</div>
+<div class='version'>v1.3.0 — Enterprise Edition</div>
 </div>
 <div class='confidential'>Confidential</div>
 </div>
@@ -543,7 +600,7 @@ style='color:{score_color};'>{risk_level}</span></div>
 {exec_summary}</p>
 </div>
 <p style='font-size:13px;color:#6b7280;line-height:1.7;'>
-This assessment was performed using GetVouch v1.2.0 automated
+This assessment was performed using GetVouch v1.3.0 automated
 static analysis, scanning {files_scanned} files across 9 security
 domains including credential exposure, authentication
 vulnerabilities, injection risks, CORS misconfiguration,
@@ -597,7 +654,7 @@ color:{risk_border};'>{risk_level} RISK</span>
 <div class='section'>
 <div class='section-label'>03 — Scan Coverage</div>
 <p style='font-size:13px;color:#6b7280;margin-bottom:14px;'>
-GetVouch v1.2.0 scans across 9 security domains.
+GetVouch v1.3.0 scans across 9 security domains.
 All categories below were included in this assessment.
 </p>
 {coverage_html}
@@ -694,7 +751,7 @@ style='background:#f9fafb;border-radius:8px;
 padding:22px;border:1px solid #e5e7eb;'>
 <div class='section-label'>06 — Disclaimer</div>
 <p style='font-size:12px;color:#6b7280;line-height:1.8;'>
-This report was generated by GetVouch v1.2.0 automated static
+This report was generated by GetVouch v1.3.0 automated static
 analysis. It represents findings detected through pattern matching
 and heuristic analysis of source code files. This report does not
 constitute a comprehensive penetration test or security audit.
@@ -717,10 +774,10 @@ analysis and require additional testing.
 <div class='footer'>
 <div class='footer-brand'>
 Prepared by <strong>GetVouch Security</strong>
-&nbsp;|&nbsp; getvouch.ai
+&nbsp;|&nbsp; getvouch.net
 </div>
 <div class='footer-note'>
-GetVouch v1.2.0 &nbsp;|&nbsp; Generated {now}<br>
+GetVouch v1.3.0 &nbsp;|&nbsp; Generated {now}<br>
 This document is confidential
 </div>
 </div>
@@ -735,7 +792,7 @@ This document is confidential
 def run_vouch(target_dir=".", telemetry=True):
     target_dir = os.path.abspath(target_dir)
     print("")
-    print("  GetVouch v1.2.0 — Full Spectrum Security Assessment")
+    print("  GetVouch v1.3.0 — Full Spectrum Security Assessment")
     print("  " + "=" * 52)
     print(f"  Scanning           : {target_dir}")
 
@@ -770,7 +827,43 @@ def run_vouch(target_dir=".", telemetry=True):
     print("")
     print(f"  Security Score     : {score}/100")
     print(f"  Assessment         : {rating}")
-    print("")
+
+    category_labels = {
+        "secrets":      "SECRETS",
+        "auth":         "AUTH",
+        "sql":          "SQL",
+        "cors":         "CORS",
+        "env":          "ENV",
+        "dependencies": "DEPS",
+        "validation":   "VALIDATION",
+        "idor":         "IDOR",
+    }
+    has_findings = any(findings_data[k] for k in findings_data)
+    if has_findings:
+        print("")
+        print("  " + "-" * 52)
+        print("  FINDINGS WITH AI FIX PROMPTS")
+        print("  " + "-" * 52)
+        for category, cat_findings in findings_data.items():
+            if not cat_findings:
+                continue
+            label = category_labels.get(category, category.upper())
+            for finding in cat_findings:
+                loc = f"{finding['file']}:{finding['line']}"
+                print(f"\n  [{label}] {finding['type']}")
+                print(f"  Location : {loc}")
+                if finding.get("snippet"):
+                    print(f"  Code     : {finding['snippet']}")
+                fix_prompt = finding.get("fix_prompt", "")
+                if fix_prompt:
+                    print("")
+                    print("  AI Fix Prompt:")
+                    print("  " + "-" * 48)
+                    for line in fix_prompt.splitlines():
+                        print(f"  {line}")
+                    print("  " + "-" * 48)
+        print("")
+
     print("  Generating executive report...")
 
     report_html = generate_html_report(
@@ -798,7 +891,7 @@ def run_vouch(target_dir=".", telemetry=True):
             pass
 
     print("  " + "=" * 52)
-    print("  GetVouch v1.2.0 — getvouch.ai")
+    print("  GetVouch v1.3.0 — getvouch.net")
     print("")
 
 

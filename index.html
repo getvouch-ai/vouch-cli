@@ -1389,7 +1389,7 @@ footer{
               placeholder="https://github.com/your-org/your-repo  or  https://your-app.vercel.app"
               autocomplete="off"
               spellcheck="false"
-              aria-label="GitHub repository URL"
+              aria-label="GitHub repository or web app URL"
             />
             <button id="scanBtn" class="scanner-btn" onclick="runScan()">Scan <span class="btn-arrow">&#8594;</span></button>
           </div>
@@ -2509,10 +2509,31 @@ async function runScan() {
     document.getElementById('scanInput').focus();
     return;
   }
-  if (!url.startsWith('https://github.com/')) {
-    showError('Please enter a valid GitHub URL (https://github.com/username/repo).');
+  // Auto-prepend https:// for bare domains (e.g. "myapp.vercel.app")
+  if (!/^https?:\/\//i.test(url)) {
+    url = 'https://' + url;
+    document.getElementById('scanInput').value = url;
+  }
+
+  const URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
+  if (!URL_RE.test(url)) {
+    showError('Please enter a valid URL (https://github.com/user/repo or https://your-app.com).');
     return;
   }
+
+  // App store listings are compiled binaries — not scannable as web apps
+  const _APP_STORE_HOSTS = ['apps.apple.com', 'play.google.com', 'chrome.google.com', 'marketplace.visualstudio.com'];
+  try {
+    const _host = new URL(url).hostname;
+    if (_APP_STORE_HOSTS.some(h => _host === h || _host.endsWith('.' + h))) {
+      showError(
+        "App Store apps are compiled binaries — we can’t scan those directly. " +
+        "Try the app’s website or backend API URL instead. " +
+        "Most security issues in vibe-coded mobile apps are in the backend."
+      );
+      return;
+    }
+  } catch (_) {}
 
   setState('loading');
   showLog();
