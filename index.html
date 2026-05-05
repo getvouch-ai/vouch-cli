@@ -2583,15 +2583,12 @@ function generateReportHtml(data) {
   const dateFull  = dateShort + ' at ' + now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
 
   const findings = data.findings || {};
-  const sf = findings.secrets      || [];
-  const af = findings.auth         || [];
-  const qf = findings.sql          || [];
-  const cf = findings.cors         || [];
-  const ef = findings.env          || [];
-  const vf = findings.validation   || [];
-  const idf= findings.idor         || [];
-  const df = findings.dependencies || [];
-  const total = sf.length + af.length + qf.length + cf.length + ef.length + vf.length + idf.length + df.length;
+  const catFindings = {};
+  let total = 0;
+  for (const key of Object.keys(CAT_META)) {
+    catFindings[key] = findings[key] || [];
+    total += catFindings[key].length;
+  }
 
   const colorMap = {
     LOW:      ['#16a34a','#f0fdf4','#16a34a'],
@@ -2663,17 +2660,32 @@ function generateReportHtml(data) {
     'Localhost URL in code':        ['MEDIUM',  'Replace hardcoded localhost URLs with environment variables. These will fail silently in production.'],
   };
   const sevColors = { CRITICAL:['#dc2626','#fef2f2'], HIGH:['#ea580c','#fff7ed'], MEDIUM:['#ca8a04','#fefce8'] };
-  const allFindings = [
-    ...sf.map(f=>['CRITICAL','#dc2626','#fef2f2',f]),
-    ...af.map(f=>['CRITICAL','#dc2626','#fef2f2',f]),
-    ...qf.map(f=>['HIGH','#ea580c','#fff7ed',f]),
-    ...cf.map(f=>['HIGH','#ea580c','#fff7ed',f]),
-    ...ef.map(f=>['CRITICAL','#dc2626','#fef2f2',f]),
-    ...df.map(f=>['MEDIUM','#ca8a04','#fefce8',f]),
-    ...vf.map(f=>['HIGH','#ea580c','#fff7ed',f]),
-    ...idf.map(f=>['HIGH','#ea580c','#fff7ed',f]),
-  ];
-  const remediationRows = allFindings.map(([sev,sc,sb,f]) => {
+  const catDesc = {
+    secrets:         'Hardcoded credentials found in source files. These must be rotated and removed immediately.',
+    auth:            'Authorization logic in client-side code can be bypassed by any user using browser developer tools.',
+    sql:             'User-controlled input in database queries enables attackers to manipulate or destroy database contents.',
+    cors:            'Overly permissive or reflected CORS configuration allows any website to make authenticated requests to your API.',
+    env:             'Environment files containing secrets are not protected from being committed to version control.',
+    validation:      'User input is processed without validation or sanitization, enabling injection and manipulation attacks.',
+    idor:            ‘User-controlled IDs used to access resources without authorization checks allow users to access data belonging to other accounts.’,
+    dependencies:    'Configuration issues and localhost references that may cause failures or expose information in production.',
+    headers:         'Missing security headers leave browsers without protection against clickjacking, XSS, and data leaks.',
+    info_disclosure: 'Version strings in HTTP headers help attackers fingerprint your stack and target known vulnerabilities.',
+    ssl:             'TLS/HTTPS issues expose users to traffic interception and man-in-the-middle attacks.',
+    supabase:        'Supabase Row Level Security is disabled, allowing unauthenticated access to database records.',
+    exposed_files:   'Sensitive configuration files are publicly accessible and may contain credentials or internal structure.',
+    admin_paths:     'Admin and debug endpoints are accessible without authentication, exposing sensitive functionality.',
+  };
+  const allFindings = [];
+  for (const [key, meta] of Object.entries(CAT_META)) {
+    for (const f of catFindings[key]) {
+      allFindings.push([meta.sev, meta.sc, meta.sb, f]);
+    }
+  }
+  const critCount = allFindings.filter(([s]) => s === 'CRITICAL').length;
+  const highCount  = allFindings.filter(([s]) => s === 'HIGH').length;
+  const medCount   = allFindings.filter(([s]) => s === 'MEDIUM').length;
+  const remediationRows = allFindings.map(([sev, sc, sb, f]) => {
     const info = remedMap[f.type];
     const [asev, remedy] = info || [sev, 'Review this finding and apply appropriate security controls.'];
     const [fc, fb] = sevColors[asev] || [sc, sb];
@@ -2730,7 +2742,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="page">
 <div class="cover">
 <div class="cover-top">
-<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.4.0 — Web Scanner</div></div>
+<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.5.2 — Security Scanner</div></div>
 <div class="confidential">Confidential</div>
 </div>
 <h1>Security Assessment Report</h1>
@@ -2760,10 +2772,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 </div>
 <div>
 <div class="metrics-grid">
-<div class="metric"><div class="metric-num" style="color:#dc2626;">${sf.length}</div><div class="metric-lbl">Exposed Secrets</div></div>
-<div class="metric"><div class="metric-num" style="color:#dc2626;">${af.length}</div><div class="metric-lbl">Auth Risks</div></div>
-<div class="metric"><div class="metric-num" style="color:#ea580c;">${qf.length + cf.length + idf.length}</div><div class="metric-lbl">Injection &amp; Access</div></div>
-<div class="metric"><div class="metric-num" style="color:#ca8a04;">${ef.length + df.length + vf.length}</div><div class="metric-lbl">Config &amp; Hygiene</div></div>
+<div class="metric"><div class="metric-num" style="color:#dc2626;">${critCount}</div><div class="metric-lbl">Critical</div></div>
+<div class="metric"><div class="metric-num" style="color:#ea580c;">${highCount}</div><div class="metric-lbl">High</div></div>
+<div class="metric"><div class="metric-num" style="color:#ca8a04;">${medCount}</div><div class="metric-lbl">Medium</div></div>
+<div class="metric"><div class="metric-num" style="color:#4ade80;">${total - critCount - highCount - medCount}</div><div class="metric-lbl">Low / Info</div></div>
 </div>
 <div class="risk-banner">
 <span style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;">Overall Risk Level</span>
@@ -2774,14 +2786,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 </div>
 <div class="section">
 <div class="section-label">03 — Detailed Findings</div>
-${buildTable(sf,  'Exposed Credentials and API Keys',           'CRITICAL','#dc2626','#fef2f2','Hardcoded credentials found in source files. These must be rotated and removed immediately.')}
-${buildTable(af,  'Client-Side Authentication Vulnerabilities', 'CRITICAL','#dc2626','#fef2f2','Authorization logic in client-side code can be bypassed by any user using browser developer tools.')}
-${buildTable(qf,  'SQL Injection Vulnerabilities',              'HIGH',    '#ea580c','#fff7ed','User-controlled input in database queries enables attackers to manipulate or destroy database contents.')}
-${buildTable(cf,  'CORS Misconfiguration',                      'HIGH',    '#ea580c','#fff7ed','Overly permissive CORS configuration allows any website to make authenticated requests to your API.')}
-${buildTable(ef,  'Environment File Safety',                    'CRITICAL','#dc2626','#fef2f2','Environment files containing secrets are not protected from being committed to version control.')}
-${buildTable(vf,  'Missing Input Validation',                   'HIGH',    '#ea580c','#fff7ed','User input is processed without validation or sanitization, enabling injection and manipulation attacks.')}
-${buildTable(idf, 'Insecure Direct Object Reference',           'HIGH',    '#ea580c','#fff7ed','User-controlled IDs used to access resources without authorization checks allow users to access others data.')}
-${buildTable(df,  'Dependency and Configuration Issues',        'MEDIUM',  '#ca8a04','#fefce8','Configuration issues and localhost references that may cause failures or expose information in production.')}
+${Object.entries(CAT_META).map(([key, meta]) =>
+  buildTable(catFindings[key], meta.label, meta.sev, meta.sc, meta.sb, catDesc[key] || '')
+).join('\n')}
 </div>
 <div class="section">
 <div class="section-label">04 — Remediation Guidance</div>
@@ -2797,7 +2804,7 @@ ${buildTable(df,  'Dependency and Configuration Issues',        'MEDIUM',  '#ca8
 </div>
 <div class="section" style="background:#f9fafb;border-radius:8px;padding:22px;border:1px solid #e5e7eb;">
 <div class="section-label">05 — Disclaimer</div>
-<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.4.0 automated static analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
+<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.5.2 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
 </div>
 <div class="print-btn">
 <button onclick="window.print()">Save as PDF</button>
@@ -2806,7 +2813,7 @@ ${buildTable(df,  'Dependency and Configuration Issues',        'MEDIUM',  '#ca8
 </div>
 <div class="footer">
 <div class="footer-brand">Prepared by <strong>GetVouch Security</strong> &nbsp;|&nbsp; getvouch.net</div>
-<div class="footer-note">GetVouch v1.4.0 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
+<div class="footer-note">GetVouch v1.5.2 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
 </div>
 </div>
 <script>
