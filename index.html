@@ -483,7 +483,7 @@ nav{
 
 /* Download row */
 .download-report-row{display:none;padding:16px;border-top:1px solid var(--border-default);}
-.download-report-row.visible{display:flex;justify-content:center;}
+.download-report-row.visible{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}
 .download-report-btn{
   display:inline-flex;align-items:center;gap:8px;
   background:transparent;color:var(--text-muted);
@@ -493,6 +493,22 @@ nav{
   transition:all 0.15s;
 }
 .download-report-btn:hover{border-color:var(--brand-blue-bright);color:var(--brand-blue-bright);}
+.share-x-btn{color:var(--brand-blue-bright);border-color:var(--brand-blue-bright);}
+.share-x-btn:hover{background:var(--brand-blue-bright);color:#0f172a;}
+.founder-cta-card{
+  display:none;margin:0 16px 16px;padding:16px 20px;
+  border:1px solid var(--border-bright);border-radius:10px;text-align:center;
+}
+.founder-cta-card.visible{display:block;}
+.founder-cta-heading{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:6px;}
+.founder-cta-text{font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:12px;}
+.founder-cta-link{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:600;color:var(--brand-blue-bright);
+  text-decoration:none;border:1px solid var(--brand-blue-bright);
+  padding:7px 16px;border-radius:6px;transition:all 0.15s;
+}
+.founder-cta-link:hover{background:var(--brand-blue-bright);color:#0f172a;}
 
 /* ── HERO CARD VISUAL (right column) ─────────────────────────────────── */
 .hero-right{position:relative;}
@@ -1447,6 +1463,18 @@ footer{
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Download Full Report
               </button>
+              <button class="download-report-btn share-x-btn" onclick="shareOnX()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                Share on X
+              </button>
+            </div>
+            <div class="founder-cta-card" id="founderCard">
+              <p class="founder-cta-heading">Got questions about your findings?</p>
+              <p class="founder-cta-text">I&#8217;m Sufiyan &#8212; built GetVouch, ex-SOC analyst. DM me on X if you want help fixing any of these, or want a deeper review.</p>
+              <a href="https://x.com/its_sj13" target="_blank" rel="noopener" class="founder-cta-link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                @its_sj13 &#8594;
+              </a>
             </div>
           </div>
         </div>
@@ -2169,9 +2197,9 @@ footer{
         <p>Now AI tools generate those same patterns automatically. Lovable ships 200,000 projects a day. Most have at least one of the issues I used to investigate at 3am.</p>
         <p>GetVouch is the check I wish every project ran before going live &#8212; whether it&#8217;s a vibe-coded side project or a freelance delivery to a paying client. It&#8217;s free because security shouldn&#8217;t be a paywall. Your code never leaves your machine because you shouldn&#8217;t have to trust me with it.</p>
         <p>If you scan your repo and find something, DM me on X. I&#8217;ll personally walk you through the fix.</p>
-        <a href="https://x.com/its_n0One" target="_blank" rel="noopener" class="founder-link">
+        <a href="https://x.com/its_sj13" target="_blank" rel="noopener" class="founder-link">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-          @its_n0One &#8594;
+          @its_sj13 &#8594;
         </a>
       </div>
     </div>
@@ -2254,7 +2282,7 @@ footer{
           <a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener">
             <i data-lucide="github"></i> GitHub
           </a>
-          <a href="https://x.com/its_n0One" target="_blank" rel="noopener">
+          <a href="https://x.com/its_sj13" target="_blank" rel="noopener">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             X / Twitter
           </a>
@@ -2413,6 +2441,7 @@ function setState(state) {
   document.getElementById('scanBtn').disabled = state === 'loading';
   if (state !== 'results') {
     document.getElementById('downloadReportRow').classList.remove('visible');
+    document.getElementById('founderCard').classList.remove('visible');
   }
 }
 
@@ -2426,6 +2455,7 @@ function renderResults(data) {
   clearLog();
   lastScanData = data;
   document.getElementById('downloadReportRow').classList.add('visible');
+  document.getElementById('founderCard').classList.add('visible');
 
   const scoreEl = document.getElementById('resultScore');
   scoreEl.textContent = data.score;
@@ -2562,6 +2592,14 @@ document.getElementById('scanInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') runScan();
 });
 
+// ── SHARE ON X ────────────────────────────────────────────────────────
+function shareOnX() {
+  if (!lastScanData) return;
+  const num  = lastScanData.totals.total;
+  const text = `Just scanned my app with @its_sj13's GetVouch — found ${num} security issue${num !== 1 ? 's' : ''} to fix.\n\nFree, no signup, your code never leaves your machine.\n\ngetvouch.net`;
+  window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text), '_blank');
+}
+
 // ── REPORT DOWNLOAD ───────────────────────────────────────────────────
 function downloadReport() {
   if (!lastScanData) return;
@@ -2667,7 +2705,7 @@ function generateReportHtml(data) {
     cors:            'Overly permissive or reflected CORS configuration allows any website to make authenticated requests to your API.',
     env:             'Environment files containing secrets are not protected from being committed to version control.',
     validation:      'User input is processed without validation or sanitization, enabling injection and manipulation attacks.',
-    idor:            ‘User-controlled IDs used to access resources without authorization checks allow users to access data belonging to other accounts.’,
+    idor:            'User-controlled IDs used to access resources without authorization checks allow users to access data belonging to other accounts.',
     dependencies:    'Configuration issues and localhost references that may cause failures or expose information in production.',
     headers:         'Missing security headers leave browsers without protection against clickjacking, XSS, and data leaks.',
     info_disclosure: 'Version strings in HTTP headers help attackers fingerprint your stack and target known vulnerabilities.',
@@ -2802,8 +2840,13 @@ ${Object.entries(CAT_META).map(([key, meta]) =>
 <tbody>${remediationRows || '<tr><td colspan="3" style="padding:16px;text-align:center;color:#16a34a;font-weight:500;">No remediation required — codebase is clean.</td></tr>'}</tbody>
 </table>
 </div>
+<div class="section">
+<div class="section-label">05 — Talk to the Builder</div>
+<p style="font-size:13px;color:#374151;line-height:1.8;margin-bottom:8px;">This report was generated by <strong>GetVouch</strong>, built by <strong>Sufiyan Junaidi</strong> (ex-SOC analyst, 3 years enterprise security). If you have questions about any of these findings, or want a deeper manual review of your code, reach out on X:</p>
+<p style="font-size:13px;line-height:1.8;"><a href="https://x.com/its_sj13" style="color:#3b82f6;font-weight:600;text-decoration:none;">@its_sj13</a> &nbsp;&mdash;&nbsp; <span style="color:#6b7280;">https://x.com/its_sj13</span></p>
+</div>
 <div class="section" style="background:#f9fafb;border-radius:8px;padding:22px;border:1px solid #e5e7eb;">
-<div class="section-label">05 — Disclaimer</div>
+<div class="section-label">06 — Disclaimer</div>
 <p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.5.2 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
 </div>
 <div class="print-btn">
