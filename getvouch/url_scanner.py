@@ -54,6 +54,20 @@ _SUPABASE_KEY_RE = re.compile(r'eyJ[a-zA-Z0-9_\-]{50,}')
 _SCRIPT_SRC_RE   = re.compile(r'<script[^>]+src=["\']([^"\']+)["\']', re.I)
 _API_PATH_RE     = re.compile(r'["\'](/api/[^"\'?\s]{1,60})["\']')
 _VERSION_RE      = re.compile(r'\d+\.\d+\.?\d*')
+_TEMPLATE_LIT_RE = re.compile(r'\$\{[^}]+\}')
+_PROC_ENV_RE     = re.compile(r'^process\.env\.\w+$')
+
+# SPA catch-all fingerprints — modern SPAs return HTTP 200 for every unknown path
+_SPA_FINGERPRINTS = [
+    b'id="root"', b"id='root'",
+    b'id="app"',  b"id='app'",
+    b'id="__next"',
+    b'/_next/',
+    b'__nuxt',
+    b'data-reactroot',
+    b'ng-version=',
+    b'<script type="module"',
+]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
@@ -73,6 +87,34 @@ def _f(type_: str, file_: str, snippet: str) -> dict:
     """Build a finding dict in the standard shape."""
     return {"type": type_, "file": file_, "line": "-",
             "snippet": snippet[:120]}
+
+
+def is_spa_fallback(resp) -> bool:
+    """True if the response looks like a SPA catch-all 200, not a real file."""
+    if resp is None:
+        return False
+    ct = resp.headers.get("content-type", "")
+    if "text/html" not in ct:
+        return False
+    body = resp.content[:4000]
+    return any(fp in body for fp in _SPA_FINGERPRINTS)
+
+
+def _is_false_positive_secret(label: str, line: str) -> bool:
+    """True if this Generic Secret match is likely a template-literal placeholder."""
+    if label != "Generic Secret":
+        return False
+    m = re.search(r'[=:]\s*[\'"]([^\'"]*)[\'"]', line)
+    if not m:
+        return False
+    val = m.group(1)
+    if len(val) < 20:
+        return True
+    if _TEMPLATE_LIT_RE.search(val) or "${" in val:
+        return True
+    if _PROC_ENV_RE.match(val.strip()):
+        return True
+    return False
 
 
 # ── Check 1: Security Headers ─────────────────────────────────────────
@@ -134,15 +176,27 @@ def check_ssl(url: str) -> list:
 
 # ── Check 4: Exposed Sensitive Files ─────────────────────────────────
 def check_exposed_files(url: str) -> list:
-    """Probe common sensitive paths; flag any that return HTTP 200."""
+    """Probe common sensitive paths; flag any that return HTTP 200 with real content."""
     parsed = urlparse(url)
     origin = f"{parsed.scheme}://{parsed.netloc}"
     findings = []
     for path in _SENSITIVE_PATHS:
         resp, _ = safe_fetch(origin + path, timeout=4)
-        if resp is not None and resp.status_code == 200 and resp.content:
-            findings.append(_f("Exposed Sensitive File", origin + path,
-                               f"HTTP 200 — {path} is publicly accessible"))
+        if resp is None or resp.status_code != 200 or not resp.content:
+            continue
+        if is_spa_fallback(resp):
+            continue
+        # Content-validate so minified-JS false positives are rejected
+        body = resp.text[:2000]
+        if ".env" in path and not re.search(r'^\w+=', body, re.MULTILINE):
+            continue
+        if ".git" in path and not re.search(r'\[core\]|ref:|[0-9a-f]{40}', body):
+            continue
+        if path.endswith(".sql") and not re.search(
+                r'(?i)(CREATE TABLE|INSERT INTO|DROP TABLE)', body):
+            continue
+        findings.append(_f("Exposed Sensitive File", origin + path,
+                           f"HTTP 200 — {path} is publicly accessible"))
     return findings
 
 
@@ -163,12 +217,10 @@ def check_secrets_in_source(url: str, resp) -> list:
     findings = []
     for source_url, content in sources:
         for label, pattern in SECRET_PATTERNS.items():
-            if re.search(pattern, content):
-                snippet = next(
-                    (ln.strip()[:80] for ln in content.splitlines()
-                     if re.search(pattern, ln)), label
-                )
-                findings.append(_f(label, source_url, snippet))
+            for ln in content.splitlines():
+                if re.search(pattern, ln) and not _is_false_positive_secret(label, ln):
+                    findings.append(_f(label, source_url, ln.strip()[:80]))
+                    break  # one finding per label per source
     return findings
 
 
@@ -235,17 +287,20 @@ def check_cors(url: str, resp) -> list:
 
 # ── Check 8: Exposed Admin / Debug Paths ─────────────────────────────
 def check_admin_paths(url: str) -> list:
-    """Probe common admin and debug endpoints; flag HTTP 200 responses."""
+    """Probe common admin and debug endpoints; flag HTTP 200 non-SPA responses."""
     parsed = urlparse(url)
     origin = f"{parsed.scheme}://{parsed.netloc}"
     findings = []
     for path in _ADMIN_PATHS:
         resp, _ = safe_fetch(origin + path, timeout=4)
-        if resp is not None and resp.status_code == 200:
-            findings.append(_f(
-                "Exposed Admin or Debug Path", origin + path,
-                f"HTTP 200 — {path} accessible without authentication",
-            ))
+        if resp is None or resp.status_code != 200:
+            continue
+        if is_spa_fallback(resp):
+            continue
+        findings.append(_f(
+            "Exposed Admin or Debug Path", origin + path,
+            f"HTTP 200 — {path} accessible without authentication",
+        ))
     return findings
 
 
