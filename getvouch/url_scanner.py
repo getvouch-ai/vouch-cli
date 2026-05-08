@@ -147,12 +147,37 @@ def check_info_disclosure(url: str, resp) -> list:
 
 
 # ── Check 3: SSL / TLS ────────────────────────────────────────────────
+def normalize_and_test_https(submitted_url: str) -> tuple:
+    """
+    Always probe https:// first regardless of submitted scheme.
+    Returns (canonical_url, no_https_finding_or_None).
+    Prevents false positives when users paste http:// links to HTTPS sites.
+    """
+    parsed = urlparse(submitted_url)
+    host = parsed.netloc or parsed.path.split("/")[0]
+
+    https_url = f"https://{host}"
+    http_url  = f"http://{host}"
+
+    https_resp, _ = safe_fetch(https_url, timeout=10)
+    if https_resp is not None and https_resp.status_code < 500:
+        return https_url, None   # HTTPS works — no finding, use https:// canonically
+
+    http_resp, _ = safe_fetch(http_url, timeout=10)
+    if http_resp is not None and http_resp.status_code < 500:
+        return http_url, _f(
+            "No HTTPS", http_url,
+            f"Site at {host} only accessible over HTTP — HTTPS is not available"
+        )
+
+    return https_url, None   # unreachable; other checks handle None resp gracefully
+
+
 def check_ssl(url: str) -> list:
-    """Verify HTTPS, cert validity, and days until expiry."""
+    """Check TLS certificate validity and expiry (canonical https:// URL assumed)."""
     parsed = urlparse(url)
     if parsed.scheme != "https":
-        return [_f("No HTTPS", url,
-                   "Site served over HTTP — all traffic is unencrypted")]
+        return []
     host = parsed.hostname
     port = parsed.port or 443
     try:
@@ -316,16 +341,21 @@ def scan_url(target_url: str) -> dict:
         "exposed_files": [], "admin_paths": [],
     }
 
-    resp, _ = safe_fetch(target_url)
+    # Normalize scheme: always test https:// first to avoid false "No HTTPS" findings
+    canonical_url, no_https_finding = normalize_and_test_https(target_url)
+    if no_https_finding:
+        findings["ssl"].append(no_https_finding)
+    findings["ssl"].extend(check_ssl(canonical_url))
 
-    findings["headers"]         = check_security_headers(target_url, resp)
-    findings["info_disclosure"] = check_info_disclosure(target_url, resp)
-    findings["ssl"]             = check_ssl(target_url)
-    findings["secrets"]         = check_secrets_in_source(target_url, resp)
-    findings["supabase"]        = check_supabase_rls(target_url, resp)
-    findings["cors"]            = check_cors(target_url, resp)
-    findings["exposed_files"]   = check_exposed_files(target_url)
-    findings["admin_paths"]     = check_admin_paths(target_url)
+    resp, _ = safe_fetch(canonical_url)
+
+    findings["headers"]         = check_security_headers(canonical_url, resp)
+    findings["info_disclosure"] = check_info_disclosure(canonical_url, resp)
+    findings["secrets"]         = check_secrets_in_source(canonical_url, resp)
+    findings["supabase"]        = check_supabase_rls(canonical_url, resp)
+    findings["cors"]            = check_cors(canonical_url, resp)
+    findings["exposed_files"]   = check_exposed_files(canonical_url)
+    findings["admin_paths"]     = check_admin_paths(canonical_url)
 
     urls_checked = (1 + len(_SENSITIVE_PATHS) + len(_ADMIN_PATHS)
                     + len(findings["cors"]))
@@ -367,5 +397,5 @@ def scan_url(target_url: str) -> dict:
         "rating":        rating,
         "files_scanned": urls_checked,
         "totals":        totals,
-        "repo_url":      target_url,
+        "repo_url":      canonical_url,
     }
