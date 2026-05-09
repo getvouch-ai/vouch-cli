@@ -1740,9 +1740,9 @@ footer{
 <!-- SECTION E: FEATURE CARDS -->
 <section class="features-section">
   <div class="features-inner">
-    <p class="section-eyebrow centered fade-up">17 SECURITY CHECKS</p>
+    <p class="section-eyebrow centered fade-up">22 SECURITY CHECKS</p>
     <h2 class="features-heading fade-up">We catch what your AI tool ships.</h2>
-    <p class="features-sub fade-up">Every scan covers 17 checks across GitHub repos and live URLs. Every finding includes a fix prompt for your AI tool.</p>
+    <p class="features-sub fade-up">Every scan covers 22 checks across GitHub repos and live URLs. Every finding includes a fix prompt for your AI tool.</p>
 
     <p class="features-group-label fade-up" style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:#94a3b8;margin:32px 0 16px;text-align:center;">GitHub Repository Scanning</p>
     <div class="features-grid">
@@ -1886,6 +1886,46 @@ footer{
         <div class="feature-title">Exposed Admin Paths</div>
         <p class="feature-desc">Checks common admin, debug, and API-docs endpoints for unauthenticated HTTP 200 responses.</p>
         <div class="feature-snippet"><code>/admin &#8594; HTTP 200 // &#9888; no auth required</code></div>
+      </div>
+
+      <!-- URL 9: Subresource Integrity -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="shield"></i></div>
+        <div class="feature-title">Subresource Integrity</div>
+        <p class="feature-desc">Detects external JS/CSS loaded from CDNs without integrity hashes &#8212; supply chain risk.</p>
+        <div class="feature-snippet"><code>&lt;script src="cdn.example.com/lib.js"&gt;  // &#9888; no integrity</code></div>
+      </div>
+
+      <!-- URL 10: Open Redirect -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="external-link"></i></div>
+        <div class="feature-title">Open Redirect</div>
+        <p class="feature-desc">Finds URL parameters that redirect to attacker-controlled URLs &#8212; phishing entry point.</p>
+        <div class="feature-snippet"><code>?redirect=https://evil.com  // &#9888; accepted</code></div>
+      </div>
+
+      <!-- URL 11: Mixed Content -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="lock-open"></i></div>
+        <div class="feature-title">Mixed Content</div>
+        <p class="feature-desc">Catches HTTPS pages loading HTTP resources &#8212; broken security model.</p>
+        <div class="feature-snippet"><code>&lt;img src="http://example.com/logo.png"&gt;  // &#9888; insecure</code></div>
+      </div>
+
+      <!-- URL 12: Rate Limit Missing -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="gauge"></i></div>
+        <div class="feature-title">Rate Limit Missing</div>
+        <p class="feature-desc">Tests auth endpoints for missing rate limits &#8212; credential stuffing risk.</p>
+        <div class="feature-snippet"><code>POST /login &times; 10  // &#9888; no 429 response</code></div>
+      </div>
+
+      <!-- URL 13: WebSocket Security -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="radio"></i></div>
+        <div class="feature-title">WebSocket Security</div>
+        <p class="feature-desc">Detects WebSocket endpoints accepting unauthenticated connections or arbitrary origins.</p>
+        <div class="feature-snippet"><code>new WebSocket("wss://app.com/")  // &#9888; no auth</code></div>
       </div>
 
     </div><!-- /url-grid -->
