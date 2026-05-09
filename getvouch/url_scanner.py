@@ -6,6 +6,7 @@ import re
 import ssl
 import socket
 import datetime
+import time
 from urllib.parse import urlparse, urljoin
 
 import httpx
@@ -48,6 +49,31 @@ _SUPABASE_TABLES = [
     "products", "documents", "notes", "messages",
 ]
 
+_AUTH_ENDPOINTS = [
+    "/login", "/signin", "/api/login", "/api/auth/login",
+    "/api/signup", "/signup", "/register", "/api/register",
+    "/auth/login", "/auth/signup", "/api/v1/auth/login",
+]
+
+_CDN_ORIGINS = frozenset({
+    "cdn.jsdelivr.net", "unpkg.com", "cdnjs.cloudflare.com",
+    "cdn.skypack.dev", "esm.sh",
+})
+
+_INFRA_HOSTS = frozenset({
+    "googletagmanager.com", "fonts.googleapis.com", "fonts.gstatic.com",
+    "www.google-analytics.com", "connect.facebook.net",
+})
+
+_WS_THIRD_PARTY = frozenset({
+    "pusher.com", "ably.io", "ably.com", "liveblocks.io", "getstream.io",
+})
+
+_REDIRECT_PARAMS = [
+    "redirect", "return", "returnTo", "url", "next", "dest",
+    "destination", "continue", "goto", "redirect_uri", "target", "link",
+]
+
 # ── Regex ─────────────────────────────────────────────────────────────
 _SUPABASE_URL_RE = re.compile(r'https://([a-z0-9]+)\.supabase\.co', re.I)
 _SUPABASE_KEY_RE = re.compile(r'eyJ[a-zA-Z0-9_\-]{50,}')
@@ -68,6 +94,20 @@ _SPA_FINGERPRINTS = [
     b'ng-version=',
     b'<script type="module"',
 ]
+
+_HTTP_ASSET_RE = re.compile(
+    r'<(?:script|link|img|iframe|video|audio|source)[^>]*(?:src|href)=["\']'
+    r'(http://[^"\']+)["\']',
+    re.I
+)
+_WS_URL_RE = re.compile(r'[\'\"](wss?://[^\'\"<>\s]+)[\'\"]', re.I)
+_REDIRECT_PARAM_RE = re.compile(
+    r'(?:href|action)=["\']([^"\']*?[?&](?:'
+    + '|'.join(["redirect", "return", "returnTo", "url", "next", "dest",
+                 "destination", "continue", "goto", "redirect_uri", "target", "link"])
+    + r')=[^"\'&\s]+)["\']',
+    re.I
+)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
@@ -329,6 +369,225 @@ def check_admin_paths(url: str) -> list:
     return findings
 
 
+# ── Check 9: Subresource Integrity ────────────────────────────────────
+def check_sri(url: str, resp) -> list:
+    """Flag external scripts/styles loaded without an integrity= hash."""
+    if resp is None:
+        return []
+    p = urlparse(url)
+    page_origin = p.netloc
+    findings = []
+    seen: set = set()
+    for tag_m in re.finditer(r'<(script|link)\s[^>]*>', resp.text, re.I | re.S):
+        tag = tag_m.group(0)
+        tag_type = tag_m.group(1).lower()
+        attr_m = (re.search(r'\bsrc=["\']([^"\']+)["\']', tag, re.I) if tag_type == 'script'
+                  else re.search(r'\bhref=["\']([^"\']+)["\']', tag, re.I))
+        if not attr_m:
+            continue
+        res_url = attr_m.group(1)
+        if res_url.startswith(('data:', 'javascript:')):
+            continue
+        if res_url.startswith('//'):
+            res_url = f"{p.scheme}:{res_url}"
+        if not res_url.startswith('http'):
+            continue
+        rp = urlparse(res_url)
+        if rp.netloc == page_origin or any(t in rp.netloc for t in _INFRA_HOSTS):
+            continue
+        if res_url in seen or re.search(r'\bintegrity=', tag, re.I):
+            continue
+        seen.add(res_url)
+        if rp.netloc in _CDN_ORIGINS:
+            findings.append(_f("Missing Subresource Integrity (CDN)", res_url,
+                               "CDN resource loaded without integrity= hash — supply chain risk"))
+        else:
+            findings.append(_f("Missing Subresource Integrity (Third-party)", res_url,
+                               f"Third-party resource at {rp.netloc} loaded without integrity= hash"))
+    return findings[:8]
+
+
+# ── Check 10: Mixed Content ────────────────────────────────────────────
+def check_mixed_content(url: str, resp) -> list:
+    """Flag HTTP resources loaded on an HTTPS page."""
+    if resp is None or urlparse(url).scheme != "https":
+        return []
+    findings = []
+    for m in _HTTP_ASSET_RE.finditer(resp.text):
+        findings.append(_f("Mixed Content", url,
+                           f"HTTPS page loads HTTP resource: {m.group(1)[:80]}"))
+    return findings[:5]
+
+
+# ── Check 11: Open Redirect ────────────────────────────────────────────
+def check_open_redirect(url: str, resp) -> list:
+    """Test redirect parameters found in page HTML for open redirect."""
+    if resp is None:
+        return []
+    p = urlparse(url)
+    origin = f"{p.scheme}://{p.netloc}"
+    test_dest = "https://example.com/getvouch-open-redirect-test"
+    findings = []
+    seen: set = set()
+    for m in _REDIRECT_PARAM_RE.finditer(resp.text):
+        raw_url = m.group(1)
+        if not raw_url.startswith('http'):
+            raw_url = urljoin(origin, raw_url)
+        rp = urlparse(raw_url)
+        if rp.netloc and rp.netloc != p.netloc:
+            continue
+        key = rp.path + "?" + rp.query
+        if key in seen:
+            continue
+        seen.add(key)
+        param_m = re.search(
+            r'([?&])(' + '|'.join(_REDIRECT_PARAMS) + r')=([^&]+)', rp.query, re.I
+        )
+        if not param_m:
+            continue
+        test_url = raw_url.replace(param_m.group(3), test_dest, 1)
+        r, _ = safe_fetch(test_url, timeout=5)
+        if r is not None and r.history:
+            loc = r.history[-1].headers.get("location", "")
+            if "getvouch-open-redirect-test" in loc:
+                findings.append(_f(
+                    "Open Redirect", origin + rp.path,
+                    f"?{param_m.group(2)}= redirects to attacker-controlled URL"
+                ))
+                break
+    return findings
+
+
+# ── Check 12: Rate Limit on Auth Endpoints ────────────────────────────
+def check_rate_limit(url: str) -> list:
+    """Send 10 rapid POSTs to auth endpoints; flag if no 429 is returned."""
+    p = urlparse(url)
+    origin = f"{p.scheme}://{p.netloc}"
+    findings = []
+    dummy = b'{"email":"test@example.com","password":"test123"}'
+    hdrs = {**_HEADERS,
+            "Content-Type": "application/json",
+            "User-Agent": "GetVouch-Scanner/1.5.6-RateLimitProbe (https://getvouch.net)"}
+    deadline = datetime.datetime.utcnow() + datetime.timedelta(seconds=30)
+    for path in _AUTH_ENDPOINTS:
+        if datetime.datetime.utcnow() > deadline:
+            break
+        endpoint = origin + path
+        try:
+            r0 = httpx.post(endpoint, content=dummy, headers=hdrs,
+                            timeout=5, follow_redirects=False)
+        except Exception:
+            continue
+        # Only test endpoints that actually process auth requests
+        # 200+content, 400/401/422 (processing errors) → real endpoint
+        # 404/405/403/4xx others → not an auth endpoint, skip
+        if r0.status_code in (404, 405, 403, 410):
+            continue
+        if is_spa_fallback(r0):
+            continue
+        if r0.status_code == 200:
+            body_lower = r0.text[:3000].lower()
+            _AUTH_SIGNALS = ("password", "email", "username", "sign in",
+                             "credentials", "token", "bearer", '"error"', '"message"')
+            if not any(s in body_lower for s in _AUTH_SIGNALS):
+                continue
+            if "captcha" in body_lower or "recaptcha" in body_lower:
+                continue
+        elif r0.status_code not in (400, 401, 422, 429, 503):
+            continue  # unexpected status — not a real auth endpoint
+        statuses = [r0.status_code]
+        rate_limited = r0.status_code in (429, 503)
+        for _ in range(9):
+            if rate_limited:
+                break
+            time.sleep(0.1)
+            try:
+                r = httpx.post(endpoint, content=dummy, headers=hdrs,
+                               timeout=5, follow_redirects=False)
+                statuses.append(r.status_code)
+                if r.status_code in (429, 503):
+                    rate_limited = True
+            except Exception:
+                break
+        if not rate_limited and len(statuses) >= 5:
+            findings.append(_f(
+                "No Rate Limiting on Auth Endpoint", endpoint,
+                f"{len(statuses)} rapid requests returned {statuses[0]} — no 429 received"
+            ))
+            break
+    return findings
+
+
+# ── Check 13: WebSocket Security ──────────────────────────────────────
+def _try_ws_handshake(ws_url: str, extra_headers: dict = None) -> bool:
+    """Attempt raw HTTP→WS upgrade; returns True if server sends 101."""
+    try:
+        import base64, os as _os
+        p = urlparse(ws_url)
+        host = p.hostname
+        port = p.port or (443 if ws_url.startswith("wss") else 80)
+        path = (p.path or "/") + (f"?{p.query}" if p.query else "")
+        key = base64.b64encode(_os.urandom(16)).decode()
+        lines = [
+            f"GET {path} HTTP/1.1",
+            f"Host: {host}:{port}",
+            "Upgrade: websocket",
+            "Connection: Upgrade",
+            f"Sec-WebSocket-Key: {key}",
+            "Sec-WebSocket-Version: 13",
+        ]
+        for k, v in (extra_headers or {}).items():
+            lines.append(f"{k}: {v}")
+        lines += ["", ""]
+        req = "\r\n".join(lines).encode()
+        if ws_url.startswith("wss"):
+            raw = socket.create_connection((host, port), timeout=5)
+            ctx = ssl.create_default_context()
+            conn = ctx.wrap_socket(raw, server_hostname=host)
+        else:
+            conn = socket.create_connection((host, port), timeout=5)
+        conn.sendall(req)
+        resp_data = conn.recv(512).decode("utf-8", errors="ignore")
+        conn.close()
+        return "101 Switching Protocols" in resp_data
+    except Exception:
+        return False
+
+
+def check_websocket(url: str, resp) -> list:
+    """Find WebSocket URLs in page/JS and test for missing auth/origin checks."""
+    if resp is None:
+        return []
+    p = urlparse(url)
+    origin = f"{p.scheme}://{p.netloc}"
+    ws_urls: set = set()
+    sources = [resp.text]
+    for m in list(_SCRIPT_SRC_RE.finditer(resp.text))[:4]:
+        src = m.group(1)
+        js_url = src if src.startswith("http") else urljoin(origin, src)
+        js_resp, _ = safe_fetch(js_url, timeout=5)
+        if js_resp and js_resp.status_code == 200:
+            sources.append(js_resp.text)
+    for source in sources:
+        for m in _WS_URL_RE.finditer(source):
+            ws_urls.add(m.group(1))
+    findings = []
+    for ws_url in list(ws_urls)[:5]:
+        if any(t in ws_url for t in _WS_THIRD_PARTY):
+            continue
+        if _try_ws_handshake(ws_url):
+            findings.append(_f(
+                "WebSocket Accepts Unauthenticated Connections", ws_url,
+                "WebSocket 101 upgrade succeeded without authentication credentials"
+            ))
+            if _try_ws_handshake(ws_url, {"Origin": "https://evil.example.com"}):
+                findings.append(_f(
+                    "WebSocket Accepts Arbitrary Origins", ws_url,
+                    "WebSocket accepts connections from evil.example.com — no origin check"
+                ))
+    return findings
+
+
 # ── Orchestrator ──────────────────────────────────────────────────────
 def scan_url(target_url: str) -> dict:
     """
@@ -339,6 +598,8 @@ def scan_url(target_url: str) -> dict:
         "headers": [], "info_disclosure": [], "ssl": [],
         "secrets": [], "supabase": [], "cors": [],
         "exposed_files": [], "admin_paths": [],
+        "sri": [], "mixed_content": [], "open_redirect": [],
+        "websocket": [], "rate_limit": [],
     }
 
     # Normalize scheme: always test https:// first to avoid false "No HTTPS" findings
@@ -356,19 +617,29 @@ def scan_url(target_url: str) -> dict:
     findings["cors"]            = check_cors(canonical_url, resp)
     findings["exposed_files"]   = check_exposed_files(canonical_url)
     findings["admin_paths"]     = check_admin_paths(canonical_url)
+    findings["sri"]             = check_sri(canonical_url, resp)
+    findings["mixed_content"]   = check_mixed_content(canonical_url, resp)
+    findings["open_redirect"]   = check_open_redirect(canonical_url, resp)
+    findings["websocket"]       = check_websocket(canonical_url, resp)
+    findings["rate_limit"]      = check_rate_limit(canonical_url)
 
     urls_checked = (1 + len(_SENSITIVE_PATHS) + len(_ADMIN_PATHS)
-                    + len(findings["cors"]))
+                    + len(_AUTH_ENDPOINTS) + len(findings["cors"]))
 
     score = max(0, 100
                 - len(findings["secrets"])        * 20
                 - len(findings["supabase"])        * 25
                 - len(findings["exposed_files"])   * 20
                 - len(findings["ssl"])             * 15
+                - len(findings["open_redirect"])   * 15
                 - len(findings["cors"])            * 10
                 - len(findings["admin_paths"])     * 10
+                - len(findings["websocket"])       * 10
                 - len(findings["headers"])         * 8
-                - len(findings["info_disclosure"]) * 5)
+                - len(findings["rate_limit"])      * 8
+                - len(findings["mixed_content"])   * 8
+                - len(findings["info_disclosure"]) * 5
+                - len(findings["sri"])             * 5)
 
     if score == 100:
         risk_level, rating = "LOW",      "CLEAN — No issues detected"

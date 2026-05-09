@@ -102,6 +102,16 @@ def generate_fix_prompt(finding: dict, category: str) -> str:
         return _prompt_supabase(f_file, f_snippet)
     elif category == "admin_paths":
         return _prompt_admin_paths(f_file)
+    elif category == "sri":
+        return _prompt_sri(f_type, f_file)
+    elif category == "mixed_content":
+        return _prompt_mixed_content(f_snippet)
+    elif category == "open_redirect":
+        return _prompt_open_redirect(f_file, f_snippet)
+    elif category == "rate_limit":
+        return _prompt_rate_limit(f_file)
+    elif category == "websocket":
+        return _prompt_websocket(f_type, f_file)
     return (
         f"Review the security finding at {loc} and apply appropriate controls.\n"
         f"Finding type: {f_type}"
@@ -572,6 +582,153 @@ def _prompt_supabase(f_file: str, f_snippet: str) -> str:
         f"  Supabase Dashboard → Project Settings → API → Regenerate anon key.\n"
         f"\n"
         f"Verify: retry the unauthenticated query — it must return 401 or empty rows."
+    )
+
+
+def _prompt_sri(f_type: str, f_file: str) -> str:
+    is_cdn = "CDN" in f_type
+    return (
+        f"SECURITY FIX NEEDED — Missing Subresource Integrity at {f_file}\n"
+        f"Risk: if {('this CDN' if is_cdn else 'this third-party host')} is compromised, "
+        f"attackers can inject arbitrary JavaScript into your users' browsers.\n"
+        f"\n"
+        f"Step 1 — Generate the integrity hash for this resource:\n"
+        f"  Visit https://www.srihash.org and paste the resource URL, OR run:\n"
+        f"  curl -s {f_file} | openssl dgst -sha384 -binary | openssl base64 -A\n"
+        f"\n"
+        f"Step 2 — Add the integrity and crossorigin attributes to the tag:\n"
+        f'  <script src="{f_file}"\n'
+        f'          integrity="sha384-<hash-from-step-1>"\n'
+        f'          crossorigin="anonymous"></script>\n'
+        f"\n"
+        f"Step 3 — Switch to self-hosted if the resource changes frequently\n"
+        f"  (integrity hashes break on every update):\n"
+        f"  npm install <package> and import from node_modules instead.\n"
+        f"\n"
+        f"Verify: open DevTools > Network, reload — the resource should load\n"
+        f"without an 'integrity mismatch' console error."
+    )
+
+
+def _prompt_mixed_content(f_snippet: str) -> str:
+    resource = f_snippet.replace("HTTPS page loads HTTP resource: ", "").strip()
+    return (
+        f"SECURITY FIX NEEDED — Mixed Content\n"
+        f"Risk: HTTPS pages loading HTTP resources break the security model — the HTTP\n"
+        f"resource can be intercepted and replaced by a network attacker.\n"
+        f"\n"
+        f"Affected resource: {resource}\n"
+        f"\n"
+        f"Step 1 — Change the resource URL to HTTPS:\n"
+        f"  http://example.com/script.js  →  https://example.com/script.js\n"
+        f"\n"
+        f"Step 2 — If the resource is not available over HTTPS, self-host it:\n"
+        f"  Download the file and serve it from your own domain.\n"
+        f"\n"
+        f"Step 3 — Search your codebase for all http:// asset references:\n"
+        f"  grep -r 'src=\"http://' . --include='*.html' --include='*.js'\n"
+        f"  grep -r 'href=\"http://' . --include='*.html'\n"
+        f"\n"
+        f"Verify: reload the page in Chrome DevTools > Console — no Mixed Content\n"
+        f"warnings should appear."
+    )
+
+
+def _prompt_open_redirect(f_file: str, f_snippet: str) -> str:
+    return (
+        f"SECURITY FIX NEEDED — Open Redirect at {f_file}\n"
+        f"Issue: {f_snippet}\n"
+        f"Risk: attackers can craft a link like https://yourapp.com/login?redirect=https://evil.com\n"
+        f"to phish your users after they authenticate — the trusted domain lends credibility.\n"
+        f"\n"
+        f"Step 1 — Validate the redirect target before redirecting:\n"
+        f"  // Only allow relative paths or your own domain\n"
+        f"  function safeRedirect(url) {{\n"
+        f"    if (url.startsWith('/') && !url.startsWith('//')) return url\n"
+        f"    const allowed = ['https://yourdomain.com', 'https://app.yourdomain.com']\n"
+        f"    if (allowed.some(origin => url.startsWith(origin))) return url\n"
+        f"    return '/dashboard'  // safe fallback\n"
+        f"  }}\n"
+        f"\n"
+        f"Step 2 — Apply to every redirect parameter handler:\n"
+        f"  redirect, return, returnTo, next, url, dest, goto, target\n"
+        f"\n"
+        f"Step 3 — For OAuth flows, validate redirect_uri against a pre-registered\n"
+        f"  allowlist at your OAuth provider — never accept arbitrary URIs.\n"
+        f"\n"
+        f"Verify: test https://yoursite.com/login?redirect=https://evil.com — it should\n"
+        f"land on /dashboard (or similar) instead of evil.com."
+    )
+
+
+def _prompt_rate_limit(f_file: str) -> str:
+    return (
+        f"SECURITY FIX NEEDED — No Rate Limiting on Auth Endpoint at {f_file}\n"
+        f"Risk: attackers can run credential stuffing or brute-force attacks with\n"
+        f"thousands of password attempts per minute at no cost.\n"
+        f"\n"
+        f"Step 1 — Add rate limiting middleware:\n"
+        f"  Express / Node.js:\n"
+        f"    import rateLimit from 'express-rate-limit'\n"
+        f"    app.use('/login', rateLimit({{ windowMs: 15*60*1000, max: 10 }}))\n"
+        f"\n"
+        f"  Next.js API route (using Upstash Redis):\n"
+        f"    import {{ Ratelimit }} from '@upstash/ratelimit'\n"
+        f"    const ratelimit = new Ratelimit({{ limiter: Ratelimit.slidingWindow(10, '15m') }})\n"
+        f"    const {{ success }} = await ratelimit.limit(ip)\n"
+        f"    if (!success) return res.status(429).json({{ error: 'Too many requests' }})\n"
+        f"\n"
+        f"  FastAPI:\n"
+        f"    Use slowapi: @limiter.limit('5/minute') on the login endpoint.\n"
+        f"\n"
+        f"  Lovable / Bolt / Replit (Supabase Auth):\n"
+        f"    Supabase applies rate limits automatically — ensure you are using\n"
+        f"    supabase.auth.signInWithPassword() not a custom endpoint.\n"
+        f"\n"
+        f"Step 2 — Return HTTP 429 with Retry-After header when limit is exceeded.\n"
+        f"\n"
+        f"Step 3 — Consider adding CAPTCHA for login after N failures:\n"
+        f"  hCaptcha or Cloudflare Turnstile (both have free tiers).\n"
+        f"\n"
+        f"Verify: send 15 rapid POST requests — the 11th should return 429."
+    )
+
+
+def _prompt_websocket(f_type: str, f_file: str) -> str:
+    is_origin = "Origin" in f_type
+    return (
+        f"SECURITY FIX NEEDED — WebSocket Security at {f_file}\n"
+        f"Risk: {'any origin can connect to your WebSocket (cross-site WebSocket hijacking)' if is_origin else 'unauthenticated users can connect to your WebSocket and receive real-time data'}\n"
+        f"\n"
+        f"Step 1 — {'Validate the Origin header on connection:' if is_origin else 'Authenticate on connection:'}\n"
+        + (
+        f"  // Node.js / ws library\n"
+        f"  wss.on('connection', (ws, req) => {{\n"
+        f"    const origin = req.headers.origin\n"
+        f"    const allowed = ['https://yourdomain.com']\n"
+        f"    if (!allowed.includes(origin)) {{ ws.close(4001, 'Forbidden'); return }}\n"
+        f"  }})\n"
+        if is_origin else
+        f"  // Verify auth token on the initial connection\n"
+        f"  wss.on('connection', async (ws, req) => {{\n"
+        f"    const token = new URL(req.url, 'ws://x').searchParams.get('token')\n"
+        f"    const user = await verifyToken(token)\n"
+        f"    if (!user) {{ ws.close(4001, 'Unauthorized'); return }}\n"
+        f"  }})\n"
+        ) +
+        f"\n"
+        f"Step 2 — Use wss:// (WebSocket over TLS) in production — never ws://.\n"
+        f"\n"
+        f"Step 3 — For Socket.io, enable auth in the handshake:\n"
+        f"  io.use(async (socket, next) => {{\n"
+        f"    const token = socket.handshake.auth.token\n"
+        f"    const user = await verifyToken(token)\n"
+        f"    if (!user) next(new Error('Unauthorized'))\n"
+        f"    else next()\n"
+        f"  }})\n"
+        f"\n"
+        f"Verify: attempt to connect without credentials (or from evil.example.com)\n"
+        f"— the server should close the connection immediately."
     )
 
 
