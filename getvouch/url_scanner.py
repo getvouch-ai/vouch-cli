@@ -75,8 +75,16 @@ _REDIRECT_PARAMS = [
 ]
 
 # ── Regex ─────────────────────────────────────────────────────────────
-_SUPABASE_URL_RE = re.compile(r'https://([a-z0-9]+)\.supabase\.co', re.I)
-_SUPABASE_KEY_RE = re.compile(r'eyJ[a-zA-Z0-9_\-]{50,}')
+_SUPABASE_URL_RE    = re.compile(r'https://([a-z0-9]{20,})\.supabase\.co', re.I)
+_SUPABASE_KEY_RE    = re.compile(r'eyJ[a-zA-Z0-9_\-]{50,}')
+_SUPABASE_SIGNAL_RE = re.compile(
+    r'createClient|supabaseUrl|supabaseKey|SUPABASE_URL|SUPABASE_ANON_KEY|'
+    r'VITE_SUPABASE_|NEXT_PUBLIC_SUPABASE_',
+    re.I
+)
+# Sent on every Supabase request so operators can identify scanner traffic
+_SB_USER_AGENT = ("GetVouch-Scanner/1.5.7 (https://getvouch.net/security)"
+                  " - ethical RLS audit")
 _SCRIPT_SRC_RE   = re.compile(r'<script[^>]+src=["\']([^"\']+)["\']', re.I)
 _API_PATH_RE     = re.compile(r'["\'](/api/[^"\'?\s]{1,60})["\']')
 _VERSION_RE      = re.compile(r'\d+\.\d+\.?\d*')
@@ -289,37 +297,121 @@ def check_secrets_in_source(url: str, resp) -> list:
     return findings
 
 
-# ── Check 6: Supabase RLS ─────────────────────────────────────────────
+# ── Check 6: Supabase RLS Deep Test ──────────────────────────────────
 def check_supabase_rls(url: str, resp) -> list:
-    """Detect Supabase credentials in source and test unauthenticated access."""
+    """
+    Deep Supabase RLS audit: detects project URL + anon key in page/JS bundles,
+    discovers tables via OpenAPI, then tests each table for unauthenticated reads.
+
+    Ethical guardrails:
+    - Read-only: only GET requests, never INSERT/UPDATE/DELETE
+    - Max 3 rows fetched per table (Range: 0-2)
+    - Column names only in findings — row values are never logged
+    - 200ms polite delay between table queries
+    - 30-second hard cap; abort on 429
+    """
     if resp is None:
         return []
-    content = resp.text
-    sb_url_m = _SUPABASE_URL_RE.search(content)
-    sb_key_m = _SUPABASE_KEY_RE.search(content)
-    if not (sb_url_m and sb_key_m):
+
+    # Gather page + JS bundle text for credential detection
+    p = urlparse(url)
+    origin = f"{p.scheme}://{p.netloc}"
+    sources = [resp.text]
+    for m in list(_SCRIPT_SRC_RE.finditer(resp.text))[:6]:
+        src = m.group(1)
+        js_url = src if src.startswith("http") else urljoin(origin, src)
+        js_resp, _ = safe_fetch(js_url, timeout=5)
+        if js_resp and js_resp.status_code == 200:
+            sources.append(js_resp.text)
+    combined = "\n".join(sources)
+
+    # Detect Supabase project reference
+    sb_url_m = _SUPABASE_URL_RE.search(combined)
+    if not sb_url_m:
         return []
-    sb_base  = f"https://{sb_url_m.group(1)}.supabase.co"
-    anon_key = sb_key_m.group(0)
-    for table in _SUPABASE_TABLES:
-        test_url = f"{sb_base}/rest/v1/{table}?select=*&limit=1"
-        r, _ = safe_fetch(test_url, timeout=5, extra_headers={
-            "apikey": anon_key,
-            "Authorization": f"Bearer {anon_key}",
-        })
-        if r is not None and r.status_code == 200:
-            try:
-                rows = r.json()
-                if isinstance(rows, list) and rows:
-                    return [_f(
-                        "Supabase RLS Disabled",
-                        f"{sb_base}/rest/v1/{table}",
-                        f"Unauthenticated query returned {len(rows)} row(s) "
-                        f"from '{table}' — Row Level Security is off",
-                    )]
-            except Exception:
-                pass
-    return []
+    # Require at least one Supabase client signal to avoid false positives
+    if not _SUPABASE_SIGNAL_RE.search(combined) and "supabase" not in combined.lower():
+        return []
+
+    # Find the anon key — prefer JWTs with role=anon
+    anon_key = None
+    for m in _SUPABASE_KEY_RE.finditer(combined):
+        candidate = m.group(0)
+        try:
+            import base64 as _b64, json as _json
+            seg = candidate.split(".")[1]
+            payload = _json.loads(_b64.b64decode(seg + "=="))
+            if payload.get("role") == "anon":
+                anon_key = candidate
+                break
+        except Exception:
+            if anon_key is None:
+                anon_key = candidate  # fallback: use first JWT found
+    if not anon_key:
+        return []
+
+    sb_project = sb_url_m.group(1)
+    sb_base    = f"https://{sb_project}.supabase.co"
+    sb_hdrs    = {
+        "apikey":        anon_key,
+        "Authorization": f"Bearer {anon_key}",
+        "User-Agent":    _SB_USER_AGENT,
+    }
+
+    # Table discovery via Supabase OpenAPI endpoint
+    tables: list = []
+    try:
+        disc, _ = safe_fetch(f"{sb_base}/rest/v1/", timeout=10, extra_headers=sb_hdrs)
+        if disc and disc.status_code == 200:
+            spec = disc.json()
+            schemas = (spec.get("definitions")
+                       or spec.get("components", {}).get("schemas")
+                       or {})
+            tables = [t for t in schemas if not t.startswith("_")][:20]
+    except Exception:
+        pass
+    if not tables:
+        tables = list(_SUPABASE_TABLES)  # fallback to common names
+
+    # RLS testing
+    findings = []
+    deadline = datetime.datetime.utcnow() + datetime.timedelta(seconds=30)
+    for table in tables[:20]:
+        if datetime.datetime.utcnow() > deadline:
+            break
+        try:
+            r = httpx.get(
+                f"{sb_base}/rest/v1/{table}?select=*",
+                headers={**sb_hdrs, "Range": "0-2"},
+                timeout=5,
+                follow_redirects=True,
+            )
+        except Exception:
+            time.sleep(0.2)
+            continue
+        if r.status_code == 429:
+            break  # rate-limited — stop immediately
+        if r.status_code not in (200,):
+            time.sleep(0.2)
+            continue
+        try:
+            rows = r.json()
+        except Exception:
+            time.sleep(0.2)
+            continue
+        if not isinstance(rows, list) or not rows:
+            time.sleep(0.2)
+            continue
+        # ETHICAL: extract column names only — never include row values
+        cols = ", ".join(list(rows[0].keys())[:10])
+        findings.append(_f(
+            "Supabase RLS Disabled",
+            f"{sb_base}/rest/v1/{table}",
+            f"Unauthenticated read of '{table}' returned {len(rows)} row(s) "
+            f"— columns: {cols}",
+        ))
+        time.sleep(0.2)
+    return findings
 
 
 # ── Check 7: CORS Misconfiguration ────────────────────────────────────

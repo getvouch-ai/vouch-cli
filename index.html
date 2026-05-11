@@ -238,6 +238,22 @@ nav{
 .status-text{
   font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);
 }
+.hero-flagship-badge{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:8px 16px;margin-bottom:16px;
+  background:rgba(34,211,238,0.06);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(34,211,238,0.35);border-radius:999px;
+  animation:flagshipPulse 3s ease-in-out infinite;
+}
+.hero-flagship-badge-text{
+  font-family:var(--font-mono);font-size:12px;font-weight:600;
+  color:var(--brand-cyan);letter-spacing:0.02em;
+}
+@keyframes flagshipPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,0.25);}
+  50%{box-shadow:0 0 16px 4px rgba(34,211,238,0.1);}
+}
 
 /* Headline */
 .hero-h1{
@@ -1381,10 +1397,16 @@ footer{
       <!-- LEFT COLUMN -->
       <div class="hero-left">
 
+        <!-- Flagship badge -->
+        <div class="hero-flagship-badge">
+          <span style="font-size:14px;">&#128737;&#65039;</span>
+          <span class="hero-flagship-badge-text">NOW SCANNING: Supabase RLS &#8212; the #1 Lovable vulnerability</span>
+        </div>
+
         <!-- Status pill -->
         <div class="status-pill">
           <span class="status-dot"></span>
-          <span class="status-text">v1.5.6 &middot; URL scanning + AI Fix Prompts</span>
+          <span class="status-text">v1.5.7 &middot; Supabase RLS testing live</span>
         </div>
 
         <!-- Headline -->
@@ -1480,7 +1502,7 @@ footer{
         </div>
 
         <!-- Trust signals -->
-        <p class="hero-trust">22 security checks &nbsp;&middot;&nbsp; 25 secret patterns &nbsp;&middot;&nbsp; GitHub repos + live URLs &nbsp;&middot;&nbsp; 0 accounts</p>
+        <p class="hero-trust">23 security checks &nbsp;&middot;&nbsp; 25 secret patterns &nbsp;&middot;&nbsp; GitHub repos + live URLs &nbsp;&middot;&nbsp; 0 accounts</p>
 
       </div><!-- /hero-left -->
 
@@ -1740,9 +1762,9 @@ footer{
 <!-- SECTION E: FEATURE CARDS -->
 <section class="features-section">
   <div class="features-inner">
-    <p class="section-eyebrow centered fade-up">22 SECURITY CHECKS</p>
+    <p class="section-eyebrow centered fade-up">23 SECURITY CHECKS</p>
     <h2 class="features-heading fade-up">We catch what your AI tool ships.</h2>
-    <p class="features-sub fade-up">Every scan covers 22 checks across GitHub repos and live URLs. Every finding includes a fix prompt for your AI tool.</p>
+    <p class="features-sub fade-up">Every scan covers 23 checks across GitHub repos and live URLs. Every finding includes a fix prompt for your AI tool.</p>
 
     <p class="features-group-label fade-up" style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:#94a3b8;margin:32px 0 16px;text-align:center;">GitHub Repository Scanning</p>
     <div class="features-grid">
@@ -1933,6 +1955,136 @@ footer{
 </section>
 <!-- SECTION E: FEATURE CARDS — COMPLETE -->
 
+<!-- SECTION E2: FLAGSHIP CHECK — SUPABASE RLS -->
+<section class="features-section" id="flagship-check" style="padding-top:0;padding-bottom:80px;">
+  <div class="features-inner">
+
+    <p class="section-eyebrow centered fade-up" style="color:var(--brand-cyan);border-color:rgba(34,211,238,0.3);">FLAGSHIP CHECK</p>
+    <h2 class="features-heading fade-up">We actually test your database.</h2>
+    <p class="features-sub fade-up">Most scanners flag a Supabase key and call it a day. GetVouch takes the extra step &#8212; it makes a real, read-only request to your database and shows you exactly which tables are open to the internet.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:48px;align-items:start;" class="fade-up">
+
+      <!-- LEFT: What we do -->
+      <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:16px;padding:32px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.25);display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="database-zap" style="width:20px;height:20px;color:var(--brand-cyan);"></i>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text-primary);">How Supabase RLS Testing Works</div>
+            <div style="font-size:12px;color:var(--text-muted);">Live, ethical, read-only</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:22px;height:22px;border-radius:50%;background:rgba(34,211,238,0.12);color:var(--brand-cyan);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">1</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Scans your page HTML and every linked JS bundle for Supabase project URLs and anon keys.</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:22px;height:22px;border-radius:50%;background:rgba(34,211,238,0.12);color:var(--brand-cyan);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">2</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Queries the Supabase OpenAPI endpoint to discover all public table names.</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:22px;height:22px;border-radius:50%;background:rgba(34,211,238,0.12);color:var(--brand-cyan);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">3</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Makes an unauthenticated SELECT with a 3-row limit against each table. No data is logged &#8212; only column names appear in findings.</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:22px;height:22px;border-radius:50%;background:rgba(34,211,238,0.12);color:var(--brand-cyan);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">4</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;">Reports each vulnerable table with exposed column names and a one-click fix prompt to enable RLS.</div>
+          </div>
+        </div>
+
+        <!-- Why This Matters card -->
+        <div style="margin-top:24px;padding:18px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:10px;">
+          <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">&#9888;&#65039; Why This Matters</div>
+          <p style="font-size:12px;color:var(--text-secondary);line-height:1.7;margin:0;">Lovable, Bolt, and Replit auto-generate Supabase apps with RLS disabled. The anon key is always in your JS bundle. Without RLS, <strong style="color:var(--text-primary);">anyone who opens your app can read your entire database</strong> &#8212; users, emails, passwords, everything. This is the #1 vulnerability in vibe-coded apps.</p>
+        </div>
+      </div>
+
+      <!-- RIGHT: Faux scan result -->
+      <div style="background:var(--bg-elevated);border:1px solid rgba(239,68,68,0.3);border-radius:16px;padding:28px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:#ef4444;"></div>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">GetVouch &#8212; Live Scan Result</div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:10px;padding:3px 8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:4px;color:#f87171;">CRITICAL</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);margin-bottom:12px;">myapp.lovable.app &#8594; Supabase RLS</div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="padding:12px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;">
+            <div style="font-family:var(--font-mono);font-size:11px;color:#f87171;font-weight:600;">&#9888; Table: profiles</div>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:4px;">Columns exposed: id, email, full_name, avatar_url, created_at</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:4px;">Unauthenticated SELECT returned rows &#8212; RLS not enabled</div>
+          </div>
+          <div style="padding:12px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;">
+            <div style="font-family:var(--font-mono);font-size:11px;color:#f87171;font-weight:600;">&#9888; Table: subscriptions</div>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:4px;">Columns exposed: id, user_id, plan, status, stripe_customer_id</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:4px;">Unauthenticated SELECT returned rows &#8212; RLS not enabled</div>
+          </div>
+          <div style="padding:12px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:8px;">
+            <div style="font-family:var(--font-mono);font-size:11px;color:#f87171;font-weight:600;">&#9888; Table: messages</div>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:4px;">Columns exposed: id, sender_id, recipient_id, content, sent_at</div>
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:4px;">Unauthenticated SELECT returned rows &#8212; RLS not enabled</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;padding:10px 14px;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.2);border-radius:8px;">
+          <div style="font-size:11px;color:var(--brand-cyan);font-weight:600;margin-bottom:4px;">Fix Prompt Included</div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">GetVouch generates a step-by-step fix prompt for each exposed table. Paste it into Lovable, Cursor, or Claude Code to enable RLS instantly.</div>
+        </div>
+
+        <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+          <div style="padding:10px;background:rgba(239,68,68,0.08);border-radius:6px;">
+            <div style="font-size:20px;font-weight:700;color:#f87171;font-family:var(--font-mono);">3</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Tables Exposed</div>
+          </div>
+          <div style="padding:10px;background:rgba(239,68,68,0.08);border-radius:6px;">
+            <div style="font-size:20px;font-weight:700;color:#f87171;font-family:var(--font-mono);">0ms</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Auth Required</div>
+          </div>
+          <div style="padding:10px;background:rgba(34,211,238,0.08);border-radius:6px;">
+            <div style="font-size:20px;font-weight:700;color:var(--brand-cyan);font-family:var(--font-mono);">3</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Fix Prompts</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /two-column grid -->
+
+    <!-- Comparison block -->
+    <div style="margin-top:48px;" class="fade-up">
+      <p style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);text-align:center;margin-bottom:20px;">How GetVouch compares on Supabase RLS</p>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+        <div style="padding:20px;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.3);border-radius:12px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:var(--brand-cyan);margin-bottom:8px;">GetVouch</div>
+          <div style="font-size:22px;margin-bottom:6px;">&#10003;</div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">Discovers tables, tests unauthenticated access, reports column names</div>
+        </div>
+        <div style="padding:20px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;text-align:center;">
+          <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">Vibe App Scanner</div>
+          <div style="font-size:22px;margin-bottom:6px;color:var(--text-dim);">&#8776;</div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">Flags Supabase key presence only &#8212; no live access test</div>
+        </div>
+        <div style="padding:20px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;text-align:center;">
+          <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">Snyk</div>
+          <div style="font-size:22px;margin-bottom:6px;color:var(--text-dim);">&#10007;</div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">No Supabase-specific RLS check</div>
+        </div>
+        <div style="padding:20px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:12px;text-align:center;">
+          <div style="font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">Prismor</div>
+          <div style="font-size:22px;margin-bottom:6px;color:var(--text-dim);">&#10007;</div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">No Supabase-specific RLS check</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+<!-- SECTION E2: FLAGSHIP CHECK — COMPLETE -->
+
 <!-- SECTION F: EXECUTIVE REPORT -->
 <section class="report-section">
   <div class="report-inner">
@@ -1974,7 +2126,7 @@ footer{
           <div class="doc-header-top">
             <div>
               <div class="doc-logo">Get<span>Vouch</span></div>
-              <div class="doc-version">v1.5.6 &#8212; Web Scanner</div>
+              <div class="doc-version">v1.5.7 &#8212; Web Scanner</div>
             </div>
             <div class="doc-confidential">Confidential</div>
           </div>
@@ -2122,6 +2274,13 @@ footer{
             <td><span class="cx">&#10007;</span></td>
           </tr>
           <tr>
+            <td>Tests Supabase RLS (the #1 Lovable vulnerability)</td>
+            <td class="cgv"><span class="ck">&#10003;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+            <td><span class="cx">&#10007;</span></td>
+          </tr>
+          <tr>
             <td>AI fix prompts</td>
             <td class="cgv"><span class="ck">&#10003;</span></td>
             <td><span class="ck">&#10003;</span></td>
@@ -2175,7 +2334,7 @@ footer{
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>Unlimited scans</li>
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>Vibe Score &amp; finding counts</li>
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>AI fix prompts (terminal output)</li>
-          <li class="price-feat"><span class="price-feat-check">&#10003;</span>22 security checks</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>23 security checks</li>
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>CLI tool included</li>
         </ul>
         <button class="price-btn secondary" onclick="document.getElementById('scanner').scrollIntoView({behavior:'smooth'})">Start scanning</button>
@@ -2289,7 +2448,7 @@ footer{
       <div>
         <div class="footer-logo">Get<span class="logo-gradient">Vouch</span></div>
         <p class="footer-tagline">Security audit for AI-generated and human-written code. Free. No signup.</p>
-        <span class="footer-version-pill">v1.5.6</span>
+        <span class="footer-version-pill">v1.5.7</span>
       </div>
 
       <!-- Product column -->
@@ -2297,6 +2456,7 @@ footer{
         <div class="footer-col-hd">PRODUCT</div>
         <div class="footer-links">
           <a href="#scanner">Web Scanner</a>
+          <a href="#flagship-check">Supabase RLS Testing</a>
           <a href="https://github.com/getvouch-ai/vouch-cli" target="_blank" rel="noopener">CLI</a>
           <a href="#">Docs</a>
           <a href="#">Changelog</a>
@@ -2429,7 +2589,7 @@ const CAT_META = {
   headers:         { label: 'Missing Security Headers',     sev: 'MEDIUM',   sc: '#fbbf24', sb: 'rgba(234,179,8,0.12)'  },
   info_disclosure: { label: 'Information Disclosure',       sev: 'LOW',      sc: '#4ade80', sb: 'rgba(74,222,128,0.12)' },
   ssl:             { label: 'SSL / TLS Issues',             sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
-  supabase:        { label: 'Supabase RLS Disabled',        sev: 'CRITICAL', sc: '#f87171', sb: 'rgba(239,68,68,0.12)'  },
+  supabase:        { label: 'Supabase RLS — Unauthenticated Read Confirmed', sev: 'CRITICAL', sc: '#f87171', sb: 'rgba(239,68,68,0.12)'  },
   exposed_files:   { label: 'Exposed Sensitive Files',      sev: 'CRITICAL', sc: '#f87171', sb: 'rgba(239,68,68,0.12)'  },
   admin_paths:     { label: 'Exposed Admin / Debug Paths',  sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
   sri:             { label: 'Subresource Integrity',        sev: 'MEDIUM',   sc: '#fbbf24', sb: 'rgba(234,179,8,0.12)'  },
@@ -2825,7 +2985,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="page">
 <div class="cover">
 <div class="cover-top">
-<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.5.6 — Security Scanner</div></div>
+<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.5.7 — Security Scanner</div></div>
 <div class="confidential">Confidential</div>
 </div>
 <h1>Security Assessment Report</h1>
@@ -2843,7 +3003,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="section">
 <div class="section-label">01 — Executive Summary</div>
 <div class="exec-box"><p style="font-size:14px;color:#374151;line-height:1.7;">${execSummary}</p></div>
-<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.5.6 automated analysis, scanning ${data.files_scanned} files/URLs across 22 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, exposed sensitive files, admin paths, security headers, subresource integrity, mixed content, open redirect, WebSocket security, and rate limiting.</p>
+<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.5.7 automated analysis, scanning ${data.files_scanned} files/URLs across 23 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, Supabase RLS live testing, exposed sensitive files, admin paths, security headers, subresource integrity, mixed content, open redirect, WebSocket security, and rate limiting.</p>
 </div>
 <div class="section">
 <div class="section-label">02 — Risk Score</div>
@@ -2892,7 +3052,7 @@ ${Object.entries(CAT_META).map(([key, meta]) =>
 </div>
 <div class="section" style="background:#f9fafb;border-radius:8px;padding:22px;border:1px solid #e5e7eb;">
 <div class="section-label">06 — Disclaimer</div>
-<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.5.6 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
+<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.5.7 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
 </div>
 <div class="print-btn">
 <button onclick="window.print()">Save as PDF</button>
@@ -2901,7 +3061,7 @@ ${Object.entries(CAT_META).map(([key, meta]) =>
 </div>
 <div class="footer">
 <div class="footer-brand">Prepared by <strong>GetVouch Security</strong> &nbsp;|&nbsp; getvouch.net</div>
-<div class="footer-note">GetVouch v1.5.6 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
+<div class="footer-note">GetVouch v1.5.7 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
 </div>
 </div>
 <script>
@@ -2953,7 +3113,7 @@ var demoLines = [
   { text: 'Cloning repository...', cls: 'term-dim' },
   { text: '✓ Cloned in 1.2s — 47 files', cls: 'term-ok' },
   { text: '', cls: 'term-empty' },
-  { text: 'Scanning 22 security checks...', cls: 'term-dim' },
+  { text: 'Scanning 23 security checks...', cls: 'term-dim' },
   { text: '[████████████████████] 100%', cls: 'term-bar' },
   { text: '', cls: 'term-empty' },
   { text: '✓ Secrets scan complete', cls: 'term-ok' },
