@@ -1,12 +1,16 @@
 """
-GetVouch URL Scanner v1.5.0 — live URL security checks.
+GetVouch URL Scanner v1.5.8 — live URL security checks.
 Read-only, ethical, no fuzzing, no payload injection.
 """
 import re
 import ssl
 import socket
+import base64
+import json as _json
 import datetime
 import time
+import threading
+import concurrent.futures
 from urllib.parse import urlparse, urljoin
 
 import httpx
@@ -45,8 +49,9 @@ _ADMIN_PATHS = [
 ]
 
 _SUPABASE_TABLES = [
-    "users", "profiles", "posts", "orders",
-    "products", "documents", "notes", "messages",
+    "users", "profiles", "accounts", "posts", "products",
+    "orders", "comments", "reviews", "sessions", "messages",
+    "todos", "tasks", "projects", "items", "customers",
 ]
 
 _AUTH_ENDPOINTS = [
@@ -75,15 +80,23 @@ _REDIRECT_PARAMS = [
 ]
 
 # ── Regex ─────────────────────────────────────────────────────────────
-_SUPABASE_URL_RE    = re.compile(r'https://([a-z0-9]{20,})\.supabase\.co', re.I)
-_SUPABASE_KEY_RE    = re.compile(r'eyJ[a-zA-Z0-9_\-]{50,}')
-_SUPABASE_SIGNAL_RE = re.compile(
-    r'createClient|supabaseUrl|supabaseKey|SUPABASE_URL|SUPABASE_ANON_KEY|'
-    r'VITE_SUPABASE_|NEXT_PUBLIC_SUPABASE_',
-    re.I
-)
+# M1: direct project URL
+_SUPABASE_URL_RE     = re.compile(r'https://([a-z0-9]{20,})\.supabase\.(co|in)', re.I)
+# M2: quoted/minified patterns
+_SUPABASE_QUOTED_RE  = re.compile(
+    r"""["'`](https://[a-z0-9-]{15,}\.supabase\.(co|in))["'`/]""", re.I)
+_SUPABASE_ENV_RE     = re.compile(
+    r"""(?:VITE_SUPABASE_URL|NEXT_PUBLIC_SUPABASE_URL|supabaseUrl)\s*[:=]\s*["'`](https://[^"'`]+)""",
+    re.I)
+_SUPABASE_CLIENT_RE  = re.compile(
+    r"""createClient\s*\(\s*["'`](https://[^"'`]+)""", re.I)
+# Full 3-segment JWT (more reliable than bare eyJ...)
+_SUPABASE_JWT_RE     = re.compile(
+    r"""["'`](eyJ[A-Za-z0-9_-]{20,}\.eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+)["'`]""")
+# Bare JWT fallback (existing pattern)
+_SUPABASE_KEY_RE     = re.compile(r'eyJ[a-zA-Z0-9_\-]{50,}')
 # Sent on every Supabase request so operators can identify scanner traffic
-_SB_USER_AGENT = ("GetVouch-Scanner/1.5.7 (https://getvouch.net/security)"
+_SB_USER_AGENT = ("GetVouch-Scanner/1.5.8 (https://getvouch.net/security)"
                   " - ethical RLS audit")
 _SCRIPT_SRC_RE   = re.compile(r'<script[^>]+src=["\']([^"\']+)["\']', re.I)
 _API_PATH_RE     = re.compile(r'["\'](/api/[^"\'?\s]{1,60})["\']')
@@ -297,27 +310,75 @@ def check_secrets_in_source(url: str, resp) -> list:
     return findings
 
 
-# ── Check 6: Supabase RLS Deep Test ──────────────────────────────────
-def check_supabase_rls(url: str, resp) -> list:
+# ── Check 6: Supabase RLS Deep Test (v1.5.8) ─────────────────────────
+def _audit_ev(phase, action, result, detail=""):
+    """Build an audit log event dict."""
+    return {"phase": phase, "action": action, "result": result, "detail": detail}
+
+
+def _decode_jwt_payload(token):
+    """Return decoded JWT payload dict, or None on failure."""
+    try:
+        parts = token.split(".")
+        if len(parts) < 2:
+            return None
+        seg = parts[1]
+        # Pad to 4-byte boundary
+        seg += "==" * ((4 - len(seg) % 4) % 4)
+        return _json.loads(base64.b64decode(seg))
+    except Exception:
+        return None
+
+
+def _find_anon_key(combined):
+    """Return the best anon-key JWT found in combined source text, or None."""
+    best = None
+    # Pass 1: full 3-segment quoted JWT (most specific)
+    for m in _SUPABASE_JWT_RE.finditer(combined):
+        candidate = m.group(1)
+        payload = _decode_jwt_payload(candidate)
+        if payload and payload.get("role") == "anon":
+            return candidate
+        if best is None:
+            best = candidate
+    # Pass 2: bare eyJ... fallback
+    for m in _SUPABASE_KEY_RE.finditer(combined):
+        candidate = m.group(0)
+        payload = _decode_jwt_payload(candidate)
+        if payload and payload.get("role") == "anon":
+            return candidate
+        if best is None:
+            best = candidate
+    return best
+
+
+def check_supabase_rls(url, resp):
     """
-    Deep Supabase RLS audit: detects project URL + anon key in page/JS bundles,
-    discovers tables via OpenAPI, then tests each table for unauthenticated reads.
+    Returns (findings: list, audit_log: list).
+
+    4-method cascade detection:
+      M1  direct supabase.co/in URL in page+JS text
+      M2  minified-JS-aware quoted / env-var / createClient patterns
+      M3  x-supabase-* or PostgREST response headers
+      M4  supabase.co in linked <script>/<link> resource URLs
 
     Ethical guardrails:
-    - Read-only: only GET requests, never INSERT/UPDATE/DELETE
-    - Max 3 rows fetched per table (Range: 0-2)
-    - Column names only in findings — row values are never logged
-    - 200ms polite delay between table queries
-    - 30-second hard cap; abort on 429
+      Read-only GET only; Range: 0-2; column names only; no row values
+      max_workers=4; 100ms min gap; 30s budget; 429 abort
     """
-    if resp is None:
-        return []
+    audit = []
 
-    # Gather page + JS bundle text for credential detection
+    if resp is None:
+        audit.append(_audit_ev("supabase_detection", "Scanning for Supabase usage",
+                               "skipped", "No response received"))
+        return [], audit
+
     p = urlparse(url)
     origin = f"{p.scheme}://{p.netloc}"
+
+    # ── Gather sources: page HTML + up to 8 JS bundles ────────────────
     sources = [resp.text]
-    for m in list(_SCRIPT_SRC_RE.finditer(resp.text))[:6]:
+    for m in list(_SCRIPT_SRC_RE.finditer(resp.text))[:8]:
         src = m.group(1)
         js_url = src if src.startswith("http") else urljoin(origin, src)
         js_resp, _ = safe_fetch(js_url, timeout=5)
@@ -325,41 +386,81 @@ def check_supabase_rls(url: str, resp) -> list:
             sources.append(js_resp.text)
     combined = "\n".join(sources)
 
-    # Detect Supabase project reference
-    sb_url_m = _SUPABASE_URL_RE.search(combined)
-    if not sb_url_m:
-        return []
-    # Require at least one Supabase client signal to avoid false positives
-    if not _SUPABASE_SIGNAL_RE.search(combined) and "supabase" not in combined.lower():
-        return []
+    # ── Method 1: direct URL pattern ──────────────────────────────────
+    sb_base = None
+    m1 = _SUPABASE_URL_RE.search(combined)
+    if m1:
+        sb_base = f"https://{m1.group(1)}.supabase.co"
 
-    # Find the anon key — prefer JWTs with role=anon
-    anon_key = None
-    for m in _SUPABASE_KEY_RE.finditer(combined):
-        candidate = m.group(0)
-        try:
-            import base64 as _b64, json as _json
-            seg = candidate.split(".")[1]
-            payload = _json.loads(_b64.b64decode(seg + "=="))
-            if payload.get("role") == "anon":
-                anon_key = candidate
+    # ── Method 2: minified-JS-aware patterns ──────────────────────────
+    if not sb_base:
+        for pat in (_SUPABASE_QUOTED_RE, _SUPABASE_ENV_RE, _SUPABASE_CLIENT_RE):
+            m2 = pat.search(combined)
+            if m2:
+                raw = m2.group(1).strip().rstrip("/")
+                if ".supabase." in raw.lower() and raw.startswith("https://"):
+                    sb_base = raw
+                    break
+
+    # ── Method 3: response headers ────────────────────────────────────
+    if not sb_base:
+        for hname, hval in resp.headers.items():
+            if hname.lower().startswith("x-supabase-"):
+                m3 = _SUPABASE_URL_RE.search(hval + " " + url)
+                if m3:
+                    sb_base = f"https://{m3.group(1)}.supabase.co"
                 break
-        except Exception:
-            if anon_key is None:
-                anon_key = candidate  # fallback: use first JWT found
-    if not anon_key:
-        return []
+        if not sb_base and "postgrest" in resp.headers.get("x-powered-by", "").lower():
+            m3b = _SUPABASE_URL_RE.search(url)
+            if m3b:
+                sb_base = f"https://{m3b.group(1)}.supabase.co"
 
-    sb_project = sb_url_m.group(1)
-    sb_base    = f"https://{sb_project}.supabase.co"
-    sb_hdrs    = {
+    # ── Method 4: linked resource analysis ────────────────────────────
+    if not sb_base:
+        for m4 in re.finditer(
+            r'(?:src|href)=["\']([^"\']*supabase\.(?:co|in)[^"\']*)["\']',
+            combined, re.I
+        ):
+            m4u = _SUPABASE_URL_RE.search(m4.group(1))
+            if m4u:
+                sb_base = f"https://{m4u.group(1)}.supabase.co"
+                break
+
+    if not sb_base:
+        audit.append(_audit_ev("supabase_detection", "Scanning for Supabase usage",
+                               "skipped",
+                               "No Supabase URLs or anon keys found in page or bundles"))
+        return [], audit
+
+    project_id = sb_base.split("//")[1].split(".")[0]
+    audit.append(_audit_ev("supabase_detection",
+                           "Searching page source for Supabase URLs",
+                           "found", f"Found project: {project_id}"))
+
+    # ── Find anon key ──────────────────────────────────────────────────
+    anon_key = _find_anon_key(combined)
+    if not anon_key:
+        audit.append(_audit_ev("supabase_detection",
+                               "Extracting anon key from JS bundles",
+                               "skipped",
+                               f"Project {project_id} found but anon key not visible "
+                               "— verify RLS manually in Supabase Dashboard"))
+        return [_f("Supabase Detected — Key Not Visible", sb_base,
+                   f"Supabase project {project_id} found; anon key not extracted "
+                   "— RLS cannot be tested remotely")], audit
+
+    audit.append(_audit_ev("supabase_detection",
+                           "Extracting anon key from JS bundles",
+                           "found", "JWT identified as role=anon"))
+
+    sb_hdrs = {
         "apikey":        anon_key,
         "Authorization": f"Bearer {anon_key}",
         "User-Agent":    _SB_USER_AGENT,
     }
 
-    # Table discovery via Supabase OpenAPI endpoint
-    tables: list = []
+    # ── Table discovery via OpenAPI ────────────────────────────────────
+    tables = []
     try:
         disc, _ = safe_fetch(f"{sb_base}/rest/v1/", timeout=10, extra_headers=sb_hdrs)
         if disc and disc.status_code == 200:
@@ -368,50 +469,102 @@ def check_supabase_rls(url: str, resp) -> list:
                        or spec.get("components", {}).get("schemas")
                        or {})
             tables = [t for t in schemas if not t.startswith("_")][:20]
-    except Exception:
-        pass
-    if not tables:
-        tables = list(_SUPABASE_TABLES)  # fallback to common names
+            audit.append(_audit_ev("table_discovery",
+                                   "Requesting OpenAPI schema from /rest/v1/",
+                                   "found", f"Discovered {len(tables)} tables"))
+        else:
+            code = disc.status_code if disc else "no response"
+            audit.append(_audit_ev("table_discovery",
+                                   "Requesting OpenAPI schema from /rest/v1/",
+                                   "skipped",
+                                   f"OpenAPI returned {code} — using common-name fallback"))
+    except Exception as exc:
+        audit.append(_audit_ev("table_discovery",
+                               "Requesting OpenAPI schema from /rest/v1/",
+                               "error", str(exc)[:80]))
 
-    # RLS testing
+    if not tables:
+        tables = list(_SUPABASE_TABLES)
+        audit.append(_audit_ev("table_discovery",
+                               "Falling back to common table name probing",
+                               "found", f"Testing {len(tables)} common table names"))
+
+    tables = tables[:20]
+
+    # ── Parallel RLS testing (4 workers, 100ms gap, 30s budget) ───────
     findings = []
     deadline = datetime.datetime.utcnow() + datetime.timedelta(seconds=30)
-    for table in tables[:20]:
-        if datetime.datetime.utcnow() > deadline:
-            break
-        try:
-            r = httpx.get(
-                f"{sb_base}/rest/v1/{table}?select=*",
-                headers={**sb_hdrs, "Range": "0-2"},
-                timeout=5,
-                follow_redirects=True,
-            )
-        except Exception:
-            time.sleep(0.2)
-            continue
-        if r.status_code == 429:
-            break  # rate-limited — stop immediately
-        if r.status_code not in (200,):
-            time.sleep(0.2)
-            continue
-        try:
-            rows = r.json()
-        except Exception:
-            time.sleep(0.2)
-            continue
-        if not isinstance(rows, list) or not rows:
-            time.sleep(0.2)
-            continue
-        # ETHICAL: extract column names only — never include row values
-        cols = ", ".join(list(rows[0].keys())[:10])
-        findings.append(_f(
-            "Supabase RLS Disabled",
-            f"{sb_base}/rest/v1/{table}",
-            f"Unauthenticated read of '{table}' returned {len(rows)} row(s) "
-            f"— columns: {cols}",
-        ))
-        time.sleep(0.2)
-    return findings
+    sem = threading.Semaphore(4)
+    launch_lock = threading.Lock()
+    last_launch = [0.0]
+    stop_flag = threading.Event()
+
+    def _test_one(table):
+        with sem:
+            if stop_flag.is_set() or datetime.datetime.utcnow() > deadline:
+                return table, None, "timeout"
+            with launch_lock:
+                now = time.time()
+                gap = now - last_launch[0]
+                if gap < 0.1:
+                    time.sleep(0.1 - gap)
+                last_launch[0] = time.time()
+            try:
+                r = httpx.get(
+                    f"{sb_base}/rest/v1/{table}?select=*",
+                    headers={**sb_hdrs, "Range": "0-2"},
+                    timeout=5,
+                    follow_redirects=True,
+                )
+                return table, r, None
+            except Exception as exc:
+                return table, None, str(exc)[:60]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        fmap = {executor.submit(_test_one, t): t for t in tables}
+        for fut in concurrent.futures.as_completed(fmap, timeout=32):
+            try:
+                table, r, err = fut.result()
+            except Exception:
+                continue
+            if err == "timeout" or r is None:
+                continue
+            if r.status_code == 429:
+                stop_flag.set()
+                audit.append(_audit_ev("rls_test", f"Rate limit hit on {table}",
+                                       "error", "HTTP 429 — stopping Supabase phase"))
+                break
+            if r.status_code == 404:
+                continue  # table absent from fallback list — silent skip
+            if r.status_code != 200:
+                audit.append(_audit_ev("rls_test",
+                                       f"Testing unauthenticated SELECT on {table} table",
+                                       "blocked",
+                                       f"RLS active — HTTP {r.status_code}"))
+                continue
+            # HTTP 200 — check if data was returned
+            try:
+                rows = r.json()
+            except Exception:
+                continue
+            if not isinstance(rows, list) or not rows:
+                audit.append(_audit_ev("rls_test",
+                                       f"Testing unauthenticated SELECT on {table} table",
+                                       "blocked", "Empty result — RLS active or table empty"))
+                continue
+            cols = ", ".join(list(rows[0].keys())[:10])
+            audit.append(_audit_ev("rls_test",
+                                   f"Testing unauthenticated SELECT on {table} table",
+                                   "found",
+                                   f"RLS BYPASSED — {len(rows)} row(s) — columns: {cols}"))
+            findings.append(_f(
+                "Supabase RLS Disabled",
+                f"{sb_base}/rest/v1/{table}",
+                f"Unauthenticated read of '{table}' returned {len(rows)} row(s) "
+                f"— columns: {cols}",
+            ))
+
+    return findings, audit
 
 
 # ── Check 7: CORS Misconfiguration ────────────────────────────────────
@@ -705,7 +858,8 @@ def scan_url(target_url: str) -> dict:
     findings["headers"]         = check_security_headers(canonical_url, resp)
     findings["info_disclosure"] = check_info_disclosure(canonical_url, resp)
     findings["secrets"]         = check_secrets_in_source(canonical_url, resp)
-    findings["supabase"]        = check_supabase_rls(canonical_url, resp)
+    sb_findings, audit_log      = check_supabase_rls(canonical_url, resp)
+    findings["supabase"]        = sb_findings
     findings["cors"]            = check_cors(canonical_url, resp)
     findings["exposed_files"]   = check_exposed_files(canonical_url)
     findings["admin_paths"]     = check_admin_paths(canonical_url)
@@ -761,4 +915,5 @@ def scan_url(target_url: str) -> dict:
         "files_scanned": urls_checked,
         "totals":        totals,
         "repo_url":      canonical_url,
+        "audit_log":     audit_log,
     }

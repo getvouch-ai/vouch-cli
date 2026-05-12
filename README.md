@@ -1,166 +1,86 @@
-# 🛡️ GetVouch — Security for Vibe-Coded Apps
+# GetVouch
 
-> AI builds fast. It also builds with unlocked doors.
-> GetVouch finds them before your users do.
+**The security scanner built for vibe-coded apps.**
 
-Built by a Cybersecurity analyst who spent 3 years watching these exact
-vulnerabilities get exploited in enterprise breaches.
-Now they're being baked into vibe-coded apps automatically.
-Nobody was talking about this clearly enough. So I built this.
+Catches the real vulnerabilities in apps built with Lovable, Bolt, Cursor, Replit, Claude Code, v0, and Windsurf. Free, no signup, your code never leaves your machine.
 
----
+🌐 Live scanner: https://getvouch.net
 
-## Why this exists
+## What it does
 
-Every vibe-coded app I reviewed had the same issues.
-Not because the founders were careless.
-Because the AI tools build them in automatically —
-and they're invisible until something goes wrong.
+- Scans GitHub repos for 9 categories of code-level vulnerabilities (exposed secrets, client-side auth, SQL injection, etc.)
+- Scans deployed app URLs for 14 categories of live vulnerabilities (security headers, exposed files, Supabase RLS, SSL/TLS, etc.)
+- Generates a copy-paste AI fix prompt for every finding — paste it into Lovable/Cursor/Bolt and the AI fixes it
+- Produces a professional PDF report you can deliver to clients
+- Shows a Technical Audit Log proving what was tested (even when defenses hold)
 
-I've seen what "something going wrong" looks like from
-the inside of a security operations center. It's not pretty.
-GetVouch is the check that runs before that happens.
+## Flagship feature: Supabase RLS testing
 
----
+GetVouch is the only vibe-coding security scanner that tests Supabase Row Level Security directly. When your app uses Supabase, we send authorized read-only queries to confirm that your RLS policies actually block unauthenticated access. If they don't, you'll find out before an attacker does.
 
-## What GetVouch v1.3.0 scans for
+## Quickstart
 
-### Secrets and credentials — 25 types
-| Secret | Example pattern |
-|---|---|
-| OpenAI API Key | sk-... |
-| Anthropic API Key | sk-ant-... |
-| Stripe Live + Test Keys | sk_live_... / sk_test_... |
-| AWS Access Key | AKIA... |
-| Google + Firebase Keys | AIza... |
-| GitHub Token | ghp_... |
-| SendGrid Key | SG.... |
-| Mailgun Key | key-... |
-| Twilio Auth Token | detected by pattern |
-| Shopify Secret | shpss_... |
-| PayPal Client Secret | detected by pattern |
-| MongoDB Connection String | mongodb://user:pass@... |
-| PostgreSQL Connection | postgres://user:pass@... |
-| JWT Secret | JWT_SECRET = "..." |
-| Private Key Block | -----BEGIN PRIVATE KEY----- |
-| Slack Token + Webhook | xoxb-... / hooks.slack.com |
-| Generic hardcoded secrets | password = "..." |
+### Scan via the web
 
-### Authentication vulnerabilities
-- Client-side admin and role checks bypassable in DevTools
-- Client-side payment checks (the bug that killed a SaaS in 72hrs)
-- Client-side auth bypass patterns
-- Auth tokens stored in localStorage
+Visit https://getvouch.net and paste either:
+- A GitHub repo URL: `https://github.com/your-org/your-repo`
+- A deployed app URL: `https://your-app.vercel.app`
 
-### Injection risks
-- SQL injection — user input in database queries
-- Missing input validation on req.body and form data
+### Scan via CLI
 
-### Infrastructure and configuration
-- CORS wildcard misconfiguration (origin: '*')
-- .env files not protected in .gitignore
-- Missing .gitignore entirely
-- Insecure direct object references (IDOR)
-- Hardcoded localhost URLs left in production code
-- Outdated dependencies in package.json
-
----
-
-## What you get
-
-A full executive security report — the kind you'd get
-from a paid consulting firm.
-
-- Security Score from 0 to 100
-- Risk level: LOW / MODERATE / HIGH / CRITICAL
-- Executive summary in plain English
-- Every finding with exact file and line number
-- Remediation guidance for each issue
-- Download as PDF with one click
-
----
-
-## Run it in 60 seconds
 ```bash
-git clone https://github.com/getvouch-ai/vouch-cli.git
-cd vouch-cli
-python getvouch/main.py
+pip install getvouch-cli
+getvouch scan https://github.com/your-org/your-repo
 ```
 
-Run it from inside your project folder.
-Open `getvouch-report.html` in your browser when it finishes.
+## What we scan
 
-**Requirements:** Python 3.8+. No external libraries needed.
-No API key. No signup. No data leaves your machine.
+### GitHub repository scanning (9 checks)
+1. Exposed Secrets (25 key types)
+2. Client-Side Authentication
+3. SQL Injection Patterns
+4. CORS Misconfiguration
+5. Environment File Safety
+6. Input Validation
+7. Insecure Direct Object References
+8. Dependency Issues
+9. Outdated Packages
 
----
+### Live URL scanning (14 checks)
+1. Security Headers (CSP, X-Frame-Options, HSTS, etc.)
+2. Exposed Sensitive Files (.env, .git/config, wp-config.php, etc.)
+3. Secrets in Page Source and JS Bundles
+4. **Supabase Row Level Security** (flagship — the #1 Lovable vulnerability)
+5. SSL/TLS Configuration
+6. CORS Misconfiguration (Live)
+7. Exposed Admin & Debug Paths
+8. Information Disclosure in HTTP Headers
+9. Subresource Integrity
+10. Open Redirect Detection
+11. Mixed Content
+12. Rate Limit Detection on Auth Endpoints
+13. WebSocket Security
 
-## Sample terminal output
-```
-  GetVouch v1.3.0 — Full Spectrum Security Assessment
-  ====================================================
-  Secrets found      : 2
-  Auth risks         : 1
-  SQL risks          : 0
-  CORS issues        : 1
-  Env file safety    : 1
-  Validation gaps    : 3
-  IDOR risks         : 0
-  Config issues      : 1
-  Files scanned      : 47
-  Total findings     : 9
+## Architecture
 
-  Security Score     : 45/100
-  Assessment         : CRITICAL — Do not ship
+- Frontend: Static HTML/CSS/JS on Cloudflare Pages → https://getvouch.net
+- Backend: FastAPI on Railway → https://web-production-8cf38.up.railway.app
+- CLI: Python package on PyPI
 
-  Generating executive report...
-  Report saved       : getvouch-report.html
-  ====================================================
-  GetVouch v1.3.0 — getvouch.net
-```
+## Ethical scanning
 
----
+GetVouch follows industry-standard ethical scanning practices:
+- All HTTP requests use a transparent User-Agent identifying GetVouch
+- Read-only operations — no writes, no deletes, no modifications
+- Rate-limited to avoid impact on target apps
+- Maximum scan time capped at 60 seconds per URL
+- Never logs or displays captured data — findings show only structure and counts
+- Supabase RLS testing uses OpenAPI introspection (authorized discovery) before falling back to common-name probing
 
-## Your data never leaves your machine
+## Built by
 
-GetVouch runs entirely locally.
-No network requests. No telemetry. No account required.
-Your code stays on your computer.
+[@its_sj13](https://x.com/its_sj13) — former SOC analyst, building GetVouch full-time.
 
-This matters because you're trusting a security tool
-with your codebase. You should be able to verify that.
-Read the source — it's 400 lines of Python.
+## License
 
----
-
-## Free audit
-
-Run GetVouch and want a human to look at the results?
-
-I personally review vibe-coded apps for free
-while GetVouch is in early access.
-
-SOC analyst background.
-Plain English findings.
-No jargon, no upsell.
-
-→ Open an Issue titled "Free Audit Request"
-→ Or find me on Reddit: u/CablePrestigious4523
-
----
-
-## Roadmap
-
-- [x] v0.1.0 — Secret scanner, 10 key types
-- [x] v0.2.0 — Client-side auth detection, SQL scanner
-- [x] v0.3.0 — Executive HTML report, PDF download
-- [x] v1.0.0 — Full spectrum scan, 9 security domains
-- [x] v1.1.0 — Scan any folder by path argument
-- [x] v1.2.0 — Web interface — paste repo URL, get report
-- [x] v1.3.0 — AI Fix Prompts for all 9 scan categories
-- [ ] v2.0.0 — GitHub App — auto-scan every PR
-
----
-
-*Built by Sufiyan — Cybersecurity Analyst turned founder.*
-*getvouch.net | v1.3.0*
+MIT

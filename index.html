@@ -437,6 +437,44 @@ nav{
 .result-cat.open .result-cat-chevron{transform:rotate(180deg);}
 .result-cat-body{display:none;border-top:1px solid var(--border-default);}
 .result-cat.open .result-cat-body{display:block;}
+/* ── Audit Log ─────────────────────────────────────────────────────── */
+.audit-log-section{
+  border:1px solid var(--border-default);border-radius:6px;overflow:hidden;
+  margin-bottom:10px;
+}
+.audit-log-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;cursor:pointer;background:var(--bg-card);
+  user-select:none;gap:8px;
+}
+.audit-log-toggle:hover{background:rgba(26,39,64,0.9);}
+.audit-log-title{
+  font-size:12px;font-weight:600;color:var(--text-secondary);
+  font-family:var(--font-mono);
+}
+.audit-log-count{
+  font-family:var(--font-mono);font-size:11px;padding:2px 8px;
+  background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.2);
+  border-radius:4px;color:var(--text-muted);
+}
+.audit-log-chevron{font-size:11px;color:var(--text-dim);transition:transform 0.2s;}
+.audit-log-section.open .audit-log-chevron{transform:rotate(180deg);}
+.audit-log-body{display:none;border-top:1px solid var(--border-default);padding:12px 16px;}
+.audit-log-section.open .audit-log-body{display:block;}
+.audit-event{display:flex;gap:12px;align-items:flex-start;padding:6px 0;}
+.audit-event+.audit-event{border-top:1px solid var(--border-subtle);}
+.audit-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px;
+}
+.audit-dot-green{background:#10b981;}
+.audit-dot-red{background:#ef4444;}
+.audit-dot-gray{background:#64748b;}
+.audit-dot-orange{background:#f59e0b;}
+.audit-action{font-size:12px;color:var(--text-secondary);flex:1;}
+.audit-detail{
+  font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
+  margin-top:2px;display:block;
+}
 .result-finding{
   padding:12px 16px;border-bottom:1px solid var(--border-subtle);
   display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;
@@ -1406,7 +1444,7 @@ footer{
         <!-- Status pill -->
         <div class="status-pill">
           <span class="status-dot"></span>
-          <span class="status-text">v1.5.7 &middot; Supabase RLS testing live</span>
+          <span class="status-text">v1.5.8 &middot; Audit Log + improved Supabase detection</span>
         </div>
 
         <!-- Headline -->
@@ -2126,7 +2164,7 @@ footer{
           <div class="doc-header-top">
             <div>
               <div class="doc-logo">Get<span>Vouch</span></div>
-              <div class="doc-version">v1.5.7 &#8212; Web Scanner</div>
+              <div class="doc-version">v1.5.8 &#8212; Web Scanner</div>
             </div>
             <div class="doc-confidential">Confidential</div>
           </div>
@@ -2448,7 +2486,7 @@ footer{
       <div>
         <div class="footer-logo">Get<span class="logo-gradient">Vouch</span></div>
         <p class="footer-tagline">Security audit for AI-generated and human-written code. Free. No signup.</p>
-        <span class="footer-version-pill">v1.5.7</span>
+        <span class="footer-version-pill">v1.5.8</span>
       </div>
 
       <!-- Product column -->
@@ -2679,6 +2717,34 @@ function renderResults(data) {
 
   const container = document.getElementById('resultCategories');
   container.innerHTML = '';
+
+  // ── Audit Log section (above findings, collapsed by default) ─────────
+  const auditLog = data.audit_log || [];
+  if (auditLog.length > 0) {
+    const auditSection = document.createElement('div');
+    auditSection.className = 'audit-log-section';
+    const auditEventsHtml = auditLog.map(function(ev) {
+      let dotCls = 'audit-dot-gray';
+      if (ev.result === 'blocked') dotCls = 'audit-dot-green';
+      else if (ev.result === 'error') dotCls = 'audit-dot-orange';
+      else if (ev.result === 'found' && ev.phase === 'rls_test') dotCls = 'audit-dot-red';
+      else if (ev.result === 'found') dotCls = 'audit-dot-green';
+      return '<div class="audit-event">' +
+        '<span class="audit-dot ' + dotCls + '"></span>' +
+        '<div><span class="audit-action">' + escHtml(ev.action) + '</span>' +
+        (ev.detail ? '<span class="audit-detail">' + escHtml(ev.detail) + '</span>' : '') +
+        '</div></div>';
+    }).join('');
+    auditSection.innerHTML =
+      '<div class="audit-log-toggle" onclick="this.parentElement.classList.toggle(\'open\')">' +
+        '<span class="audit-log-title">Technical Audit Log</span>' +
+        '<span style="flex:1"></span>' +
+        '<span class="audit-log-count">' + auditLog.length + ' events</span>' +
+        '<span class="audit-log-chevron">&#9660;</span>' +
+      '</div>' +
+      '<div class="audit-log-body">' + auditEventsHtml + '</div>';
+    container.appendChild(auditSection);
+  }
 
   if (!isClean) {
     for (const [key, meta] of Object.entries(CAT_META)) {
@@ -2985,7 +3051,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="page">
 <div class="cover">
 <div class="cover-top">
-<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.5.7 — Security Scanner</div></div>
+<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.5.8 — Security Scanner</div></div>
 <div class="confidential">Confidential</div>
 </div>
 <h1>Security Assessment Report</h1>
@@ -3003,7 +3069,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="section">
 <div class="section-label">01 — Executive Summary</div>
 <div class="exec-box"><p style="font-size:14px;color:#374151;line-height:1.7;">${execSummary}</p></div>
-<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.5.7 automated analysis, scanning ${data.files_scanned} files/URLs across 23 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, Supabase RLS live testing, exposed sensitive files, admin paths, security headers, subresource integrity, mixed content, open redirect, WebSocket security, and rate limiting.</p>
+<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.5.8 automated analysis, scanning ${data.files_scanned} files/URLs across 23 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, Supabase RLS live testing, exposed sensitive files, admin paths, security headers, subresource integrity, mixed content, open redirect, WebSocket security, and rate limiting.</p>
 </div>
 <div class="section">
 <div class="section-label">02 — Risk Score</div>
@@ -3033,8 +3099,35 @@ ${Object.entries(CAT_META).map(([key, meta]) =>
   buildTable(catFindings[key], meta.label, meta.sev, meta.sc, meta.sb, catDesc[key] || '')
 ).join('\n')}
 </div>
+${(data.audit_log && data.audit_log.length > 0) ? `
 <div class="section">
-<div class="section-label">04 — Remediation Guidance</div>
+<div class="section-label">04 — Technical Audit Log</div>
+<p style="font-size:13px;color:#6b7280;margin-bottom:14px;line-height:1.7;">GetVouch executed the following authenticated checks during this scan. Each test is shown with its result, including when defenses held — confirming the scanner ran and your policies are effective.</p>
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+<thead><tr style="background:#f9fafb;">
+<th style="padding:8px 12px;text-align:left;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;width:120px;">Phase</th>
+<th style="padding:8px 12px;text-align:left;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Action</th>
+<th style="padding:8px 12px;text-align:left;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;width:80px;">Result</th>
+<th style="padding:8px 12px;text-align:left;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Detail</th>
+</tr></thead>
+<tbody>${data.audit_log.map(ev => {
+  const rc = ev.result === 'blocked' ? '#16a34a'
+    : ev.result === 'skipped' ? '#6b7280'
+    : ev.result === 'error'   ? '#d97706'
+    : (ev.result === 'found' && ev.phase === 'rls_test') ? '#dc2626'
+    : '#16a34a';
+  const pl = {supabase_detection:'Detection',table_discovery:'Discovery',rls_test:'RLS Test'}[ev.phase] || ev.phase;
+  return '<tr style="border-top:1px solid #e5e7eb;">' +
+    '<td style="padding:8px 12px;color:#374151;">' + esc(pl) + '</td>' +
+    '<td style="padding:8px 12px;color:#374151;">' + esc(ev.action) + '</td>' +
+    '<td style="padding:8px 12px;font-weight:600;color:' + rc + ';">' + esc(ev.result.toUpperCase()) + '</td>' +
+    '<td style="padding:8px 12px;color:#6b7280;font-family:monospace;">' + esc(ev.detail || '') + '</td>' +
+    '</tr>';
+}).join('')}</tbody>
+</table>
+</div>` : ''}
+<div class="section">
+<div class="section-label">${(data.audit_log && data.audit_log.length > 0) ? '05' : '04'} — Remediation Guidance</div>
 <p style="font-size:13px;color:#6b7280;margin-bottom:14px;line-height:1.7;">Remediation steps listed in order of priority. Critical findings must be addressed before any production deployment or user onboarding.</p>
 <table style="width:100%;border-collapse:collapse;">
 <thead><tr style="background:#f9fafb;">
@@ -3046,13 +3139,13 @@ ${Object.entries(CAT_META).map(([key, meta]) =>
 </table>
 </div>
 <div class="section">
-<div class="section-label">05 — Talk to the Builder</div>
+<div class="section-label">${(data.audit_log && data.audit_log.length > 0) ? '06' : '05'} — Talk to the Builder</div>
 <p style="font-size:13px;color:#374151;line-height:1.8;margin-bottom:8px;">This report was generated by <strong>GetVouch</strong>, built by <strong>Sufiyan Junaidi</strong> (ex-SOC analyst, 3 years enterprise security). If you have questions about any of these findings, or want a deeper manual review of your code, reach out on X:</p>
 <p style="font-size:13px;line-height:1.8;"><a href="https://x.com/its_sj13" style="color:#3b82f6;font-weight:600;text-decoration:none;">@its_sj13</a> &nbsp;&mdash;&nbsp; <span style="color:#6b7280;">https://x.com/its_sj13</span></p>
 </div>
 <div class="section" style="background:#f9fafb;border-radius:8px;padding:22px;border:1px solid #e5e7eb;">
-<div class="section-label">06 — Disclaimer</div>
-<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.5.7 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
+<div class="section-label">${(data.audit_log && data.audit_log.length > 0) ? '07' : '06'} — Disclaimer</div>
+<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.5.8 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
 </div>
 <div class="print-btn">
 <button onclick="window.print()">Save as PDF</button>
@@ -3061,7 +3154,7 @@ ${Object.entries(CAT_META).map(([key, meta]) =>
 </div>
 <div class="footer">
 <div class="footer-brand">Prepared by <strong>GetVouch Security</strong> &nbsp;|&nbsp; getvouch.net</div>
-<div class="footer-note">GetVouch v1.5.7 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
+<div class="footer-note">GetVouch v1.5.8 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
 </div>
 </div>
 <script>
