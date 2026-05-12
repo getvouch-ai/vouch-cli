@@ -470,6 +470,11 @@ nav{
 .audit-dot-red{background:#ef4444;}
 .audit-dot-gray{background:#64748b;}
 .audit-dot-orange{background:#f59e0b;}
+.supabase-status-card{border:1px solid var(--border-default);background:var(--bg-card);border-radius:10px;padding:14px 18px;margin-bottom:10px;}
+.supabase-status-card.inconclusive{border-color:rgba(245,158,11,0.4);}
+.supabase-status-card.clean{border-color:rgba(16,185,129,0.4);}
+.supabase-status-label{font-size:13px;font-weight:600;color:var(--text-primary);line-height:1.5;}
+.supabase-status-helper{font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.5;}
 .audit-action{font-size:12px;color:var(--text-secondary);flex:1;}
 .audit-detail{
   font-family:var(--font-mono);font-size:11px;color:var(--text-muted);
@@ -1444,7 +1449,7 @@ footer{
         <!-- Status pill -->
         <div class="status-pill">
           <span class="status-dot"></span>
-          <span class="status-text">v1.5.8 &middot; Audit Log + improved Supabase detection</span>
+          <span class="status-text">v1.5.9 &middot; Transparent Supabase scanning</span>
         </div>
 
         <!-- Headline -->
@@ -2119,6 +2124,12 @@ footer{
       </div>
     </div>
 
+    <!-- Honest about what we scan -->
+    <div style="margin-top:40px;padding:24px 28px;background:rgba(34,211,238,0.04);border:1px solid rgba(34,211,238,0.15);border-radius:14px;" class="fade-up">
+      <div style="font-size:13px;font-weight:700;color:var(--brand-cyan);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:10px;">Honest about what we scan</div>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin:0;">GetVouch tests Supabase RLS by detecting your project URL and anon key in your app&#8217;s entry-level JavaScript bundles. If your app loads Supabase from dynamically imported chunks (common with Vite), we&#8217;ll mark the result as <strong style="color:var(--text-secondary);">Inconclusive</strong> and tell you exactly what we didn&#8217;t scan &#8212; instead of pretending everything&#8217;s fine. Other scanners just say &#8220;no issues.&#8221;</p>
+    </div>
+
   </div>
 </section>
 <!-- SECTION E2: FLAGSHIP CHECK — COMPLETE -->
@@ -2164,7 +2175,7 @@ footer{
           <div class="doc-header-top">
             <div>
               <div class="doc-logo">Get<span>Vouch</span></div>
-              <div class="doc-version">v1.5.8 &#8212; Web Scanner</div>
+              <div class="doc-version">v1.5.9 &#8212; Web Scanner</div>
             </div>
             <div class="doc-confidential">Confidential</div>
           </div>
@@ -2486,7 +2497,7 @@ footer{
       <div>
         <div class="footer-logo">Get<span class="logo-gradient">Vouch</span></div>
         <p class="footer-tagline">Security audit for AI-generated and human-written code. Free. No signup.</p>
-        <span class="footer-version-pill">v1.5.8</span>
+        <span class="footer-version-pill">v1.5.9</span>
       </div>
 
       <!-- Product column -->
@@ -2728,6 +2739,7 @@ function renderResults(data) {
       if (ev.result === 'blocked') dotCls = 'audit-dot-green';
       else if (ev.result === 'error') dotCls = 'audit-dot-orange';
       else if (ev.result === 'found' && ev.phase === 'rls_test') dotCls = 'audit-dot-red';
+      else if (ev.result === 'bypassed') dotCls = 'audit-dot-red';
       else if (ev.result === 'found') dotCls = 'audit-dot-green';
       return '<div class="audit-event">' +
         '<span class="audit-dot ' + dotCls + '"></span>' +
@@ -2744,6 +2756,36 @@ function renderResults(data) {
       '</div>' +
       '<div class="audit-log-body">' + auditEventsHtml + '</div>';
     container.appendChild(auditSection);
+  }
+
+  // ── Supabase scan status card (only when no supabase findings) ────────
+  const sbStatus = data.supabase_scan_status;
+  const sbFindings = (data.findings && data.findings.supabase) ? data.findings.supabase : [];
+  if (sbStatus && sbFindings.length === 0) {
+    const sbCard = document.createElement('div');
+    let sbLabelHtml = '';
+    let sbHelperText = '';
+    let sbCls = 'inconclusive';
+    if (sbStatus === 'tested') {
+      sbCls = 'clean';
+      const rlsCount = (data.audit_log || []).filter(function(ev) { return ev.phase === 'rls_test'; }).length;
+      sbLabelHtml = '<span style="color:var(--success);">&#10003;</span> No RLS issues detected' +
+        (rlsCount > 0 ? '. ' + rlsCount + ' table' + (rlsCount !== 1 ? 's' : '') + ' tested.' : '.');
+      sbHelperText = 'All tested tables returned HTTP 403 or empty results — RLS policies are enforcing access control.';
+    } else if (sbStatus === 'key_missing') {
+      sbLabelHtml = '<span style="color:var(--warning);">?</span> Inconclusive — Supabase detected but anon key not extractable from entry-level bundles.';
+      sbHelperText = "Most Lovable/Bolt apps load Supabase from chunked bundles. We're working on recursive chunk analysis in a future release.";
+    } else if (sbStatus === 'not_detected') {
+      sbLabelHtml = '<span style="color:var(--text-dim);">?</span> Inconclusive — No Supabase usage detected in entry-level bundles.';
+      sbHelperText = "Most Lovable/Bolt apps load Supabase from chunked bundles. We're working on recursive chunk analysis in a future release.";
+    }
+    if (sbLabelHtml) {
+      sbCard.className = 'supabase-status-card ' + sbCls;
+      sbCard.innerHTML =
+        '<div class="supabase-status-label">' + sbLabelHtml + '</div>' +
+        (sbHelperText ? '<div class="supabase-status-helper">' + sbHelperText + '</div>' : '');
+      container.appendChild(sbCard);
+    }
   }
 
   if (!isClean) {
@@ -2921,8 +2963,11 @@ function generateReportHtml(data) {
   function badge(level, fc, fb) {
     return `<span style="background:${fb};color:${fc};padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:0.05em;border:1px solid ${fc};">${level}</span>`;
   }
-  function buildTable(list, title, sev, sc, sb, desc) {
-    if (!list.length) return `<div style="margin-bottom:28px;"><h3 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">${title}</h3><div style="background:#f9fafb;border-radius:6px;padding:14px;text-align:center;color:#16a34a;font-size:13px;font-weight:500;">No issues detected.</div></div>`;
+  function buildTable(list, title, sev, sc, sb, desc, noFindingsHtml) {
+    if (!list.length) {
+      const nf = noFindingsHtml || '<div style="background:#f9fafb;border-radius:6px;padding:14px;text-align:center;color:#16a34a;font-size:13px;font-weight:500;">No issues detected.</div>';
+      return '<div style="margin-bottom:28px;"><h3 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb;">' + esc(title) + '</h3>' + nf + '</div>';
+    }
     const rows = list.map((f, i) => {
       const fixRow = f.fix_prompt ? `<tr style="background:#f8fafc;"><td colspan="6" style="padding:0;"><div style="margin:8px 12px 16px 12px;padding:16px;background:#0f172a;color:#e2e8f0;border-radius:8px;font-family:'JetBrains Mono',Menlo,monospace;font-size:12px;line-height:1.6;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><span style="color:#60a5fa;font-weight:600;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;">AI FIX PROMPT</span><button onclick="copyReportPrompt(this)" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">Copy</button></div><pre style="white-space:pre-wrap;color:#cbd5e1;margin:0;">${esc(f.fix_prompt)}</pre><p style="font-size:10px;color:#64748b;margin:10px 0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Paste this into Lovable, Cursor, Bolt, Replit, or Claude Code</p></div></td></tr>` : '';
       return `<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:10px 14px;font-size:13px;color:#6b7280;vertical-align:top;">${i+1}</td><td style="padding:10px 14px;vertical-align:top;">${badge(sev,sc,sb)}</td><td style="padding:10px 14px;font-size:13px;color:#111827;font-weight:500;vertical-align:top;">${esc(f.type)}</td><td style="padding:10px 14px;font-size:11px;color:#6b7280;font-family:monospace;vertical-align:top;max-width:200px;word-break:break-all;">${esc(f.file)}</td><td style="padding:10px 14px;font-size:12px;color:#374151;text-align:center;vertical-align:top;">${esc(f.line||'-')}</td><td style="padding:10px 14px;font-size:11px;color:#6b7280;font-family:monospace;vertical-align:top;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.snippet||'')}</td></tr>${fixRow}`;
@@ -2967,6 +3012,8 @@ function generateReportHtml(data) {
     'Missing input validation':     ['HIGH',    'Validate and sanitize all user input before processing. Install a validation library like joi, zod, or express-validator.'],
     'Direct object reference':      ['HIGH',    'Verify authorization on every request that accesses user data by ID. Never assume the requesting user owns the resource they are requesting.'],
     'Localhost URL in code':        ['MEDIUM',  'Replace hardcoded localhost URLs with environment variables. These will fail silently in production.'],
+    'Supabase Service Role Key Exposed': ['CRITICAL', 'Rotate the service_role key in Supabase Settings immediately. Replace with the anon key in createClient(). The service_role key bypasses all RLS and must never appear in client-side bundles.'],
+    'Supabase RLS Disabled':         ['CRITICAL', 'Enable Row Level Security on this table in the Supabase dashboard and add a SELECT policy using auth.uid(). Without RLS, unauthenticated users can read all rows.'],
   };
   const sevColors = { CRITICAL:['#dc2626','#fef2f2'], HIGH:['#ea580c','#fff7ed'], MEDIUM:['#ca8a04','#fefce8'] };
   const catDesc = {
@@ -3051,7 +3098,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="page">
 <div class="cover">
 <div class="cover-top">
-<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.5.8 — Security Scanner</div></div>
+<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.5.9 — Security Scanner</div></div>
 <div class="confidential">Confidential</div>
 </div>
 <h1>Security Assessment Report</h1>
@@ -3069,7 +3116,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="section">
 <div class="section-label">01 — Executive Summary</div>
 <div class="exec-box"><p style="font-size:14px;color:#374151;line-height:1.7;">${execSummary}</p></div>
-<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.5.8 automated analysis, scanning ${data.files_scanned} files/URLs across 23 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, Supabase RLS live testing, exposed sensitive files, admin paths, security headers, subresource integrity, mixed content, open redirect, WebSocket security, and rate limiting.</p>
+<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.5.9 automated analysis, scanning ${data.files_scanned} files/URLs across 23 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, Supabase RLS live testing, exposed sensitive files, admin paths, security headers, subresource integrity, mixed content, open redirect, WebSocket security, and rate limiting.</p>
 </div>
 <div class="section">
 <div class="section-label">02 — Risk Score</div>
@@ -3095,9 +3142,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 </div>
 <div class="section">
 <div class="section-label">03 — Detailed Findings</div>
-${Object.entries(CAT_META).map(([key, meta]) =>
-  buildTable(catFindings[key], meta.label, meta.sev, meta.sc, meta.sb, catDesc[key] || '')
-).join('\n')}
+${Object.entries(CAT_META).map(([key, meta]) => {
+  let noFindingsHtml = null;
+  if (key === 'supabase' && catFindings[key].length === 0) {
+    const sbSt = data.supabase_scan_status;
+    if (sbSt === 'not_detected') {
+      noFindingsHtml = '<div style="background:#fefce8;border:1px solid #ca8a04;border-radius:6px;padding:14px;"><div style="color:#92400e;font-size:13px;font-weight:600;margin-bottom:4px;">? Inconclusive</div><div style="color:#78350f;font-size:12px;line-height:1.6;">No Supabase usage detected in entry-level bundles. This scan does not perform recursive chunk analysis. If your app uses Vite or similar bundlers with dynamic imports, Supabase may be in a nested chunk we did not scan.</div></div>';
+    } else if (sbSt === 'key_missing') {
+      noFindingsHtml = '<div style="background:#fefce8;border:1px solid #ca8a04;border-radius:6px;padding:14px;"><div style="color:#92400e;font-size:13px;font-weight:600;margin-bottom:4px;">? Inconclusive</div><div style="color:#78350f;font-size:12px;line-height:1.6;">Supabase detected but anon key not extractable from entry-level bundles. The key may be in a dynamically imported chunk.</div></div>';
+    }
+  }
+  return buildTable(catFindings[key], meta.label, meta.sev, meta.sc, meta.sb, catDesc[key] || '', noFindingsHtml);
+}).join('\n')}
 </div>
 ${(data.audit_log && data.audit_log.length > 0) ? `
 <div class="section">
@@ -3114,6 +3170,7 @@ ${(data.audit_log && data.audit_log.length > 0) ? `
   const rc = ev.result === 'blocked' ? '#16a34a'
     : ev.result === 'skipped' ? '#6b7280'
     : ev.result === 'error'   ? '#d97706'
+    : ev.result === 'bypassed' ? '#dc2626'
     : (ev.result === 'found' && ev.phase === 'rls_test') ? '#dc2626'
     : '#16a34a';
   const pl = {supabase_detection:'Detection',table_discovery:'Discovery',rls_test:'RLS Test'}[ev.phase] || ev.phase;
@@ -3145,7 +3202,7 @@ ${(data.audit_log && data.audit_log.length > 0) ? `
 </div>
 <div class="section" style="background:#f9fafb;border-radius:8px;padding:22px;border:1px solid #e5e7eb;">
 <div class="section-label">${(data.audit_log && data.audit_log.length > 0) ? '07' : '06'} — Disclaimer</div>
-<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.5.8 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
+<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.5.9 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
 </div>
 <div class="print-btn">
 <button onclick="window.print()">Save as PDF</button>
@@ -3154,7 +3211,7 @@ ${(data.audit_log && data.audit_log.length > 0) ? `
 </div>
 <div class="footer">
 <div class="footer-brand">Prepared by <strong>GetVouch Security</strong> &nbsp;|&nbsp; getvouch.net</div>
-<div class="footer-note">GetVouch v1.5.8 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
+<div class="footer-note">GetVouch v1.5.9 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
 </div>
 </div>
 <script>

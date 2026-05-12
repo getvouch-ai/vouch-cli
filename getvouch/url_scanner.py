@@ -1,5 +1,5 @@
 """
-GetVouch URL Scanner v1.5.8 — live URL security checks.
+GetVouch URL Scanner v1.5.9 — live URL security checks.
 Read-only, ethical, no fuzzing, no payload injection.
 """
 import re
@@ -96,7 +96,7 @@ _SUPABASE_JWT_RE     = re.compile(
 # Bare JWT fallback (existing pattern)
 _SUPABASE_KEY_RE     = re.compile(r'eyJ[a-zA-Z0-9_\-]{50,}')
 # Sent on every Supabase request so operators can identify scanner traffic
-_SB_USER_AGENT = ("GetVouch-Scanner/1.5.8 (https://getvouch.net/security)"
+_SB_USER_AGENT = ("GetVouch-Scanner/1.5.9 (https://getvouch.net/security)"
                   " - ethical RLS audit")
 _SCRIPT_SRC_RE   = re.compile(r'<script[^>]+src=["\']([^"\']+)["\']', re.I)
 _API_PATH_RE     = re.compile(r'["\'](/api/[^"\'?\s]{1,60})["\']')
@@ -330,69 +330,151 @@ def _decode_jwt_payload(token):
         return None
 
 
-def _find_anon_key(combined):
-    """Return the best anon-key JWT found in combined source text, or None."""
+def _find_keys(combined):
+    """Return (anon_key, service_role_key) found in combined text. Either may be None."""
+    anon_key = None
+    svc_key = None
     best = None
-    # Pass 1: full 3-segment quoted JWT (most specific)
+
+    def _classify(candidate):
+        nonlocal anon_key, svc_key, best
+        payload = _decode_jwt_payload(candidate)
+        if payload:
+            role = payload.get("role", "")
+            if role == "anon" and anon_key is None:
+                anon_key = candidate
+                return
+            if role == "service_role" and svc_key is None:
+                svc_key = candidate
+                return
+        if best is None:
+            best = candidate
+
     for m in _SUPABASE_JWT_RE.finditer(combined):
-        candidate = m.group(1)
-        payload = _decode_jwt_payload(candidate)
-        if payload and payload.get("role") == "anon":
-            return candidate
-        if best is None:
-            best = candidate
-    # Pass 2: bare eyJ... fallback
+        _classify(m.group(1))
     for m in _SUPABASE_KEY_RE.finditer(combined):
-        candidate = m.group(0)
-        payload = _decode_jwt_payload(candidate)
-        if payload and payload.get("role") == "anon":
-            return candidate
-        if best is None:
-            best = candidate
-    return best
+        _classify(m.group(0))
+
+    if anon_key is None and svc_key is None:
+        anon_key = best
+    return anon_key, svc_key
+
+
+def _collect_entry_assets(html_text, origin, cap=25):
+    """Collect entry-level JS asset URLs (script src, modulepreload, preload as=script)."""
+    seen = set()
+    urls = []
+
+    def _add(src):
+        if not src:
+            return
+        src = src.strip()
+        if src.startswith(("data:", "javascript:")):
+            return
+        full = src if src.startswith("http") else urljoin(origin, src)
+        if full not in seen:
+            seen.add(full)
+            urls.append(full)
+
+    for m in _SCRIPT_SRC_RE.finditer(html_text):
+        _add(m.group(1))
+    for tag_m in re.finditer(r'<link\b[^>]+>', html_text, re.I | re.S):
+        tag = tag_m.group(0)
+        rel_m = re.search(r'\brel=["\']([^"\']+)["\']', tag, re.I)
+        if not rel_m:
+            continue
+        rel = rel_m.group(1).lower()
+        href_m = re.search(r'\bhref=["\']([^"\']+)["\']', tag, re.I)
+        if not href_m:
+            continue
+        if rel == "modulepreload":
+            _add(href_m.group(1))
+        elif rel == "preload":
+            as_m = re.search(r'\bas=["\']([^"\']+)["\']', tag, re.I)
+            if as_m and as_m.group(1).lower() == "script":
+                _add(href_m.group(1))
+
+    return urls[:cap]
+
+
+def _fetch_assets_parallel(urls, budget=15.0):
+    """Fetch URLs in parallel (4 workers, 5s each, `budget`s total). Never raises."""
+    if not urls:
+        return []
+    deadline = time.time() + budget
+    texts = {}
+
+    def _one(u):
+        try:
+            r = httpx.get(u, headers=_HEADERS, timeout=5, follow_redirects=True)
+            if r and r.status_code == 200:
+                return u, r.text
+        except Exception:
+            pass
+        return u, ""
+
+    remaining = max(0.5, deadline - time.time())
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            fmap = {executor.submit(_one, u): u for u in urls}
+            for fut in concurrent.futures.as_completed(fmap, timeout=remaining):
+                try:
+                    u, text = fut.result()
+                    if text:
+                        texts[u] = text
+                except Exception:
+                    pass
+                if time.time() > deadline:
+                    break
+    except concurrent.futures.TimeoutError:
+        pass
+    except Exception:
+        pass
+
+    return list(texts.values())
 
 
 def check_supabase_rls(url, resp):
     """
-    Returns (findings: list, audit_log: list).
+    Returns (findings: list, audit_log: list, status: str).
+    status: 'no_response' | 'not_detected' | 'key_missing' | 'tested'
 
-    4-method cascade detection:
-      M1  direct supabase.co/in URL in page+JS text
-      M2  minified-JS-aware quoted / env-var / createClient patterns
-      M3  x-supabase-* or PostgREST response headers
-      M4  supabase.co in linked <script>/<link> resource URLs
-
-    Ethical guardrails:
-      Read-only GET only; Range: 0-2; column names only; no row values
-      max_workers=4; 100ms min gap; 30s budget; 429 abort
+    Scans page HTML + up to 25 entry-level assets (script src, modulepreload,
+    preload as=script). Service role key in client bundle → CRITICAL finding.
+    Parallel RLS testing: 4 workers, 100ms gap, 30s budget, 429 abort.
     """
     audit = []
 
     if resp is None:
         audit.append(_audit_ev("supabase_detection", "Scanning for Supabase usage",
                                "skipped", "No response received"))
-        return [], audit
+        return [], audit, "no_response"
 
     p = urlparse(url)
     origin = f"{p.scheme}://{p.netloc}"
+    page_html = resp.text
 
-    # ── Gather sources: page HTML + up to 8 JS bundles ────────────────
-    sources = [resp.text]
-    for m in list(_SCRIPT_SRC_RE.finditer(resp.text))[:8]:
-        src = m.group(1)
-        js_url = src if src.startswith("http") else urljoin(origin, src)
-        js_resp, _ = safe_fetch(js_url, timeout=5)
-        if js_resp and js_resp.status_code == 200:
-            sources.append(js_resp.text)
-    combined = "\n".join(sources)
+    # ── Phase 1: Collect + fetch entry-level assets ───────────────────
+    asset_urls = _collect_entry_assets(page_html, origin, cap=25)
+    asset_texts = _fetch_assets_parallel(asset_urls, budget=15.0)
+    combined = page_html + "\n" + "\n".join(asset_texts)
 
-    # ── Method 1: direct URL pattern ──────────────────────────────────
+    n_assets = len(asset_urls)
+    audit.append(_audit_ev(
+        "supabase_detection", "Fetched entry-level JS bundles",
+        "found" if n_assets > 0 else "skipped",
+        f"Scanned {n_assets} entry-level assets (script tags + modulepreload links)"
+    ))
+
+    # ── Phase 2: 4-method Supabase URL detection ──────────────────────
     sb_base = None
+
+    # M1: direct URL pattern
     m1 = _SUPABASE_URL_RE.search(combined)
     if m1:
         sb_base = f"https://{m1.group(1)}.supabase.co"
 
-    # ── Method 2: minified-JS-aware patterns ──────────────────────────
+    # M2: minified-JS-aware patterns
     if not sb_base:
         for pat in (_SUPABASE_QUOTED_RE, _SUPABASE_ENV_RE, _SUPABASE_CLIENT_RE):
             m2 = pat.search(combined)
@@ -402,7 +484,7 @@ def check_supabase_rls(url, resp):
                     sb_base = raw
                     break
 
-    # ── Method 3: response headers ────────────────────────────────────
+    # M3: response headers
     if not sb_base:
         for hname, hval in resp.headers.items():
             if hname.lower().startswith("x-supabase-"):
@@ -415,7 +497,7 @@ def check_supabase_rls(url, resp):
             if m3b:
                 sb_base = f"https://{m3b.group(1)}.supabase.co"
 
-    # ── Method 4: linked resource analysis ────────────────────────────
+    # M4: linked resource analysis
     if not sb_base:
         for m4 in re.finditer(
             r'(?:src|href)=["\']([^"\']*supabase\.(?:co|in)[^"\']*)["\']',
@@ -427,31 +509,49 @@ def check_supabase_rls(url, resp):
                 break
 
     if not sb_base:
-        audit.append(_audit_ev("supabase_detection", "Scanning for Supabase usage",
-                               "skipped",
-                               "No Supabase URLs or anon keys found in page or bundles"))
-        return [], audit
+        audit.append(_audit_ev(
+            "supabase_detection", "Searching for Supabase project URL", "blocked",
+            "No Supabase URLs found in entry-level bundles. "
+            "NOTE: This scan does not perform recursive chunk analysis. "
+            "If your app uses Vite or similar bundlers with dynamic imports, "
+            "Supabase may be in a nested chunk we did not scan."
+        ))
+        return [], audit, "not_detected"
 
     project_id = sb_base.split("//")[1].split(".")[0]
-    audit.append(_audit_ev("supabase_detection",
-                           "Searching page source for Supabase URLs",
-                           "found", f"Found project: {project_id}"))
 
-    # ── Find anon key ──────────────────────────────────────────────────
-    anon_key = _find_anon_key(combined)
+    # ── Phase 3: Key extraction ───────────────────────────────────────
+    anon_key, svc_key = _find_keys(combined)
+    findings = []
+
+    if svc_key:
+        audit.append(_audit_ev(
+            "supabase_detection", "Inspecting JWT role claim", "bypassed",
+            "Detected service_role JWT in client bundle — CRITICAL exposure"
+        ))
+        findings.append(_f(
+            "Supabase Service Role Key Exposed", sb_base,
+            "service_role JWT found in client-side bundle — bypasses ALL RLS policies"
+        ))
+
     if not anon_key:
-        audit.append(_audit_ev("supabase_detection",
-                               "Extracting anon key from JS bundles",
-                               "skipped",
-                               f"Project {project_id} found but anon key not visible "
-                               "— verify RLS manually in Supabase Dashboard"))
-        return [_f("Supabase Detected — Key Not Visible", sb_base,
-                   f"Supabase project {project_id} found; anon key not extracted "
-                   "— RLS cannot be tested remotely")], audit
+        audit.append(_audit_ev(
+            "supabase_detection", "Searching for Supabase anon key", "blocked",
+            "Supabase project URL found, but no anon key visible in entry-level bundles. "
+            "The key may be in a nested chunk — RLS testing cannot proceed without it."
+        ))
+        if not svc_key:
+            findings.append(_f(
+                "Supabase Detected — Key Not Visible", sb_base,
+                f"Supabase project {project_id} found; anon key not extracted "
+                "— RLS cannot be tested remotely"
+            ))
+        return findings, audit, "key_missing"
 
-    audit.append(_audit_ev("supabase_detection",
-                           "Extracting anon key from JS bundles",
-                           "found", "JWT identified as role=anon"))
+    audit.append(_audit_ev(
+        "supabase_detection", "Located Supabase project and anon key", "found",
+        f"Project: {project_id}, anon key extracted"
+    ))
 
     sb_hdrs = {
         "apikey":        anon_key,
@@ -459,7 +559,7 @@ def check_supabase_rls(url, resp):
         "User-Agent":    _SB_USER_AGENT,
     }
 
-    # ── Table discovery via OpenAPI ────────────────────────────────────
+    # ── Phase 4: Table discovery via OpenAPI ──────────────────────────
     tables = []
     try:
         disc, _ = safe_fetch(f"{sb_base}/rest/v1/", timeout=10, extra_headers=sb_hdrs)
@@ -491,8 +591,7 @@ def check_supabase_rls(url, resp):
 
     tables = tables[:20]
 
-    # ── Parallel RLS testing (4 workers, 100ms gap, 30s budget) ───────
-    findings = []
+    # ── Phase 5: Parallel RLS testing (4 workers, 100ms gap, 30s budget) ─
     deadline = datetime.datetime.utcnow() + datetime.timedelta(seconds=30)
     sem = threading.Semaphore(4)
     launch_lock = threading.Lock()
@@ -535,14 +634,13 @@ def check_supabase_rls(url, resp):
                                        "error", "HTTP 429 — stopping Supabase phase"))
                 break
             if r.status_code == 404:
-                continue  # table absent from fallback list — silent skip
+                continue
             if r.status_code != 200:
                 audit.append(_audit_ev("rls_test",
                                        f"Testing unauthenticated SELECT on {table} table",
                                        "blocked",
                                        f"RLS active — HTTP {r.status_code}"))
                 continue
-            # HTTP 200 — check if data was returned
             try:
                 rows = r.json()
             except Exception:
@@ -564,7 +662,7 @@ def check_supabase_rls(url, resp):
                 f"— columns: {cols}",
             ))
 
-    return findings, audit
+    return findings, audit, "tested"
 
 
 # ── Check 7: CORS Misconfiguration ────────────────────────────────────
@@ -858,7 +956,7 @@ def scan_url(target_url: str) -> dict:
     findings["headers"]         = check_security_headers(canonical_url, resp)
     findings["info_disclosure"] = check_info_disclosure(canonical_url, resp)
     findings["secrets"]         = check_secrets_in_source(canonical_url, resp)
-    sb_findings, audit_log      = check_supabase_rls(canonical_url, resp)
+    sb_findings, audit_log, supabase_scan_status = check_supabase_rls(canonical_url, resp)
     findings["supabase"]        = sb_findings
     findings["cors"]            = check_cors(canonical_url, resp)
     findings["exposed_files"]   = check_exposed_files(canonical_url)
@@ -914,6 +1012,7 @@ def scan_url(target_url: str) -> dict:
         "rating":        rating,
         "files_scanned": urls_checked,
         "totals":        totals,
-        "repo_url":      canonical_url,
-        "audit_log":     audit_log,
+        "repo_url":             canonical_url,
+        "supabase_scan_status": supabase_scan_status,
+        "audit_log":            audit_log,
     }

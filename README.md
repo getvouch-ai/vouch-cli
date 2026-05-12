@@ -9,7 +9,7 @@ Catches the real vulnerabilities in apps built with Lovable, Bolt, Cursor, Repli
 ## What it does
 
 - Scans GitHub repos for 9 categories of code-level vulnerabilities (exposed secrets, client-side auth, SQL injection, etc.)
-- Scans deployed app URLs for 14 categories of live vulnerabilities (security headers, exposed files, Supabase RLS, SSL/TLS, etc.)
+- Scans deployed app URLs for 15 categories of live vulnerabilities (security headers, exposed files, Supabase RLS, service role key exposure, SSL/TLS, etc.)
 - Generates a copy-paste AI fix prompt for every finding — paste it into Lovable/Cursor/Bolt and the AI fixes it
 - Produces a professional PDF report you can deliver to clients
 - Shows a Technical Audit Log proving what was tested (even when defenses hold)
@@ -60,6 +60,7 @@ getvouch scan https://github.com/your-org/your-repo
 11. Mixed Content
 12. Rate Limit Detection on Auth Endpoints
 13. WebSocket Security
+14. **Supabase Service Role Key Exposure** (CRITICAL) — Detects if the service_role JWT is present in client-side bundles. This key bypasses all RLS — finding it in a client bundle is the most severe finding GetVouch produces.
 
 ## Architecture
 
@@ -76,6 +77,8 @@ GetVouch follows industry-standard ethical scanning practices:
 - Maximum scan time capped at 60 seconds per URL
 - Never logs or displays captured data — findings show only structure and counts
 - Supabase RLS testing uses OpenAPI introspection (authorized discovery) before falling back to common-name probing
+
+**Honest reporting:** When our automated scanner can't fully test something (e.g., Supabase keys hidden in dynamically loaded chunks), we mark the result as Inconclusive and tell you exactly what we couldn't scan. We don't show a green check on incomplete scans.
 
 ## Built by
 

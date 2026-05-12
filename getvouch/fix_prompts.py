@@ -99,6 +99,8 @@ def generate_fix_prompt(finding: dict, category: str) -> str:
     elif category == "exposed_files":
         return _prompt_exposed_files(f_file)
     elif category == "supabase":
+        if "Service Role" in f_type:
+            return _prompt_supabase_service_role()
         return _prompt_supabase(f_file, f_snippet)
     elif category == "admin_paths":
         return _prompt_admin_paths(f_file)
@@ -553,6 +555,52 @@ def _prompt_exposed_files(f_file: str) -> str:
         f"Step 2 — Confirm the block: curl -I {f_file} should return 403 or 404.\n"
         f"\n"
         f"Step 3 — Assume the file was already read. Rotate all secrets inside it."
+    )
+
+
+def _prompt_supabase_service_role() -> str:
+    return (
+        "CRITICAL SECURITY FIX NEEDED — Your Supabase service_role key is in your client-side code.\n"
+        "\n"
+        "What this means: The service_role key bypasses ALL security policies. Anyone who opens\n"
+        "your site's DevTools can extract this key and read, modify, or delete your entire database.\n"
+        "This is more severe than missing RLS.\n"
+        "\n"
+        "This usually happens when an AI tool (Lovable, Bolt, Cursor) defaulted to the wrong env\n"
+        "variable when wiring up Supabase. Common mistakes:\n"
+        "  - Using SUPABASE_SERVICE_ROLE_KEY instead of SUPABASE_ANON_KEY in createClient()\n"
+        "  - Prefixing the service role key with VITE_PUBLIC_ or NEXT_PUBLIC_\n"
+        "\n"
+        "How to fix it right now:\n"
+        "\n"
+        "Step 1 - Rotate the exposed key immediately\n"
+        "  1. Go to https://app.supabase.com -> your project -> Settings -> API\n"
+        "  2. Click 'Reset' next to the service_role key\n"
+        "  3. The old key is now invalid - anyone holding it loses access\n"
+        "\n"
+        "Step 2 - Replace with the anon key in your client code\n"
+        "  1. In Lovable, find where createClient() is called\n"
+        "  2. Replace the service role key reference with the anon (public) key\n"
+        "  3. The anon key is on your Supabase API settings page - labeled 'anon public'\n"
+        "\n"
+        "Example of correct configuration:\n"
+        "  import { createClient } from '@supabase/supabase-js'\n"
+        "  const supabase = createClient(\n"
+        "    import.meta.env.VITE_SUPABASE_URL,\n"
+        "    import.meta.env.VITE_SUPABASE_ANON_KEY  // anon key, not service_role\n"
+        "  )\n"
+        "\n"
+        "Step 3 - Confirm RLS is enabled\n"
+        "  The anon key only works correctly if Row Level Security is configured on each table.\n"
+        "  After replacing the key, re-run GetVouch to test RLS.\n"
+        "\n"
+        "Step 4 - Service role key belongs only in Edge Functions\n"
+        "  If your app needs service-role privileges for specific operations (like sending emails\n"
+        "  after signup), move that logic to a Supabase Edge Function. Edge Functions run\n"
+        "  server-side and can safely use the service role key without exposing it to clients.\n"
+        "\n"
+        "Verify: Open your deployed site -> DevTools -> Sources -> Search for 'service_role' in\n"
+        "the bundle. There should be zero matches. Then re-run GetVouch."
     )
 
 
