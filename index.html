@@ -1449,7 +1449,7 @@ footer{
         <!-- Status pill -->
         <div class="status-pill">
           <span class="status-dot"></span>
-          <span class="status-text">v1.5.9 &middot; Transparent Supabase scanning</span>
+          <span class="status-text">v1.6.0 &middot; Supply Chain Attack detection</span>
         </div>
 
         <!-- Headline -->
@@ -1545,7 +1545,7 @@ footer{
         </div>
 
         <!-- Trust signals -->
-        <p class="hero-trust">23 security checks &nbsp;&middot;&nbsp; 25 secret patterns &nbsp;&middot;&nbsp; GitHub repos + live URLs &nbsp;&middot;&nbsp; 0 accounts</p>
+        <p class="hero-trust">24 security checks &nbsp;&middot;&nbsp; 25 secret patterns &nbsp;&middot;&nbsp; GitHub repos + live URLs &nbsp;&middot;&nbsp; 0 accounts</p>
 
       </div><!-- /hero-left -->
 
@@ -1807,7 +1807,7 @@ footer{
   <div class="features-inner">
     <p class="section-eyebrow centered fade-up">23 SECURITY CHECKS</p>
     <h2 class="features-heading fade-up">We catch what your AI tool ships.</h2>
-    <p class="features-sub fade-up">Every scan covers 23 checks across GitHub repos and live URLs. Every finding includes a fix prompt for your AI tool.</p>
+    <p class="features-sub fade-up">Every scan covers 24 checks across GitHub repos and live URLs. Every finding includes a fix prompt for your AI tool.</p>
 
     <p class="features-group-label fade-up" style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.15em;color:#94a3b8;margin:32px 0 16px;text-align:center;">GitHub Repository Scanning</p>
     <div class="features-grid">
@@ -1882,6 +1882,14 @@ footer{
         <div class="feature-title">Outdated Packages</div>
         <p class="feature-desc">Scans package.json for known-vulnerable versions and suggests safer alternatives.</p>
         <div class="feature-snippet"><code>"lodash": "^4.17.15"  // 17 known CVEs</code></div>
+      </div>
+
+      <!-- 10: Supply Chain Attacks -->
+      <div class="feature-card fade-up">
+        <div class="feature-icon-wrap"><i data-lucide="package-x"></i></div>
+        <div class="feature-title">Supply Chain Attacks</div>
+        <p class="feature-desc">Checks dependencies against published lists of packages compromised in the 2025&#8211;2026 npm supply chain attacks (Shai-Hulud, chalk/debug, Mini Shai-Hulud, Nx). Updated weekly.</p>
+        <div class="feature-snippet"><code>chalk@5.6.0 &#9888; compromised &#8212; qix phish, Sept 2025</code></div>
       </div>
 
     </div><!-- /features-grid -->
@@ -2134,6 +2142,28 @@ footer{
 </section>
 <!-- SECTION E2: FLAGSHIP CHECK — COMPLETE -->
 
+<!-- SECTION E3: SUPPLY CHAIN DISCLOSURE -->
+<section class="features-section" style="padding-top:0;padding-bottom:64px;">
+  <div class="features-inner">
+    <div class="fade-up" style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:16px;padding:40px 48px;max-width:780px;margin:0 auto;">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i data-lucide="package-x" style="width:20px;height:20px;color:#f87171;"></i>
+        </div>
+        <div style="font-size:17px;font-weight:700;color:var(--text-primary);">Honest about our supply chain check</div>
+      </div>
+      <p style="font-size:14px;color:var(--text-secondary);line-height:1.8;margin-bottom:0;">
+        GetVouch checks your dependencies against a static list of known-compromised packages from major 2025&#8211;2026 attacks (Shai-Hulud, chalk/debug, Mini Shai-Hulud, Nx, Axios). We update this list weekly.
+        For real-time supply chain monitoring that catches new attacks within hours, we recommend
+        <a href="https://socket.dev" target="_blank" rel="noopener" style="color:var(--brand-blue-bright);text-decoration:none;">Socket</a>
+        or <a href="https://snyk.io" target="_blank" rel="noopener" style="color:var(--brand-blue-bright);text-decoration:none;">Snyk Open Source</a>.
+        We&#8217;re the quick free check for vibe-coded apps. They&#8217;re the full-time threat research operation.
+      </p>
+    </div>
+  </div>
+</section>
+<!-- SECTION E3: SUPPLY CHAIN DISCLOSURE — COMPLETE -->
+
 <!-- SECTION F: EXECUTIVE REPORT -->
 <section class="report-section">
   <div class="report-inner">
@@ -2175,7 +2205,7 @@ footer{
           <div class="doc-header-top">
             <div>
               <div class="doc-logo">Get<span>Vouch</span></div>
-              <div class="doc-version">v1.5.9 &#8212; Web Scanner</div>
+              <div class="doc-version">v1.6.0 &#8212; Web Scanner</div>
             </div>
             <div class="doc-confidential">Confidential</div>
           </div>
@@ -2383,7 +2413,7 @@ footer{
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>Unlimited scans</li>
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>Vibe Score &amp; finding counts</li>
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>AI fix prompts (terminal output)</li>
-          <li class="price-feat"><span class="price-feat-check">&#10003;</span>23 security checks</li>
+          <li class="price-feat"><span class="price-feat-check">&#10003;</span>24 security checks</li>
           <li class="price-feat"><span class="price-feat-check">&#10003;</span>CLI tool included</li>
         </ul>
         <button class="price-btn secondary" onclick="document.getElementById('scanner').scrollIntoView({behavior:'smooth'})">Start scanning</button>
@@ -2497,7 +2527,7 @@ footer{
       <div>
         <div class="footer-logo">Get<span class="logo-gradient">Vouch</span></div>
         <p class="footer-tagline">Security audit for AI-generated and human-written code. Free. No signup.</p>
-        <span class="footer-version-pill">v1.5.9</span>
+        <span class="footer-version-pill">v1.6.0</span>
       </div>
 
       <!-- Product column -->
@@ -2646,6 +2676,7 @@ const CAT_META = {
   open_redirect:   { label: 'Open Redirect',                sev: 'HIGH',     sc: '#fb923c', sb: 'rgba(249,115,22,0.12)' },
   websocket:       { label: 'WebSocket Security',           sev: 'MEDIUM',   sc: '#fbbf24', sb: 'rgba(234,179,8,0.12)'  },
   rate_limit:      { label: 'Rate Limit Missing',           sev: 'MEDIUM',   sc: '#fbbf24', sb: 'rgba(234,179,8,0.12)'  },
+  supply_chain:    { label: 'Supply Chain Attack',          sev: 'CRITICAL', sc: '#f87171', sb: 'rgba(239,68,68,0.12)'  },
 };
 
 const SCORE_COLOR = { LOW: '#4ade80', MODERATE: '#fbbf24', HIGH: '#fb923c', CRITICAL: '#f87171' };
@@ -3031,6 +3062,7 @@ function generateReportHtml(data) {
     supabase:        'Supabase Row Level Security is disabled, allowing unauthenticated access to database records.',
     exposed_files:   'Sensitive configuration files are publicly accessible and may contain credentials or internal structure.',
     admin_paths:     'Admin and debug endpoints are accessible without authentication, exposing sensitive functionality.',
+    supply_chain:    'Dependency matched a known-compromised package from a major 2025-2026 npm supply chain attack (Shai-Hulud, chalk/debug, Mini Shai-Hulud, Nx, Axios). The malicious version may execute credential-theft or crypto-hijacking code at install time.',
   };
   const allFindings = [];
   for (const [key, meta] of Object.entries(CAT_META)) {
@@ -3098,7 +3130,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="page">
 <div class="cover">
 <div class="cover-top">
-<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.5.9 — Security Scanner</div></div>
+<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.6.0 — Security Scanner</div></div>
 <div class="confidential">Confidential</div>
 </div>
 <h1>Security Assessment Report</h1>
@@ -3116,7 +3148,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="section">
 <div class="section-label">01 — Executive Summary</div>
 <div class="exec-box"><p style="font-size:14px;color:#374151;line-height:1.7;">${execSummary}</p></div>
-<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.5.9 automated analysis, scanning ${data.files_scanned} files/URLs across 23 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, Supabase RLS live testing, exposed sensitive files, admin paths, security headers, subresource integrity, mixed content, open redirect, WebSocket security, and rate limiting.</p>
+<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.6.0 automated analysis, scanning ${data.files_scanned} files/URLs across 24 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, Supabase RLS live testing, exposed sensitive files, admin paths, security headers, subresource integrity, mixed content, open redirect, WebSocket security, rate limiting, and supply chain attack detection.</p>
 </div>
 <div class="section">
 <div class="section-label">02 — Risk Score</div>
@@ -3202,7 +3234,7 @@ ${(data.audit_log && data.audit_log.length > 0) ? `
 </div>
 <div class="section" style="background:#f9fafb;border-radius:8px;padding:22px;border:1px solid #e5e7eb;">
 <div class="section-label">${(data.audit_log && data.audit_log.length > 0) ? '07' : '06'} — Disclaimer</div>
-<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.5.9 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
+<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.6.0 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
 </div>
 <div class="print-btn">
 <button onclick="window.print()">Save as PDF</button>
@@ -3211,7 +3243,7 @@ ${(data.audit_log && data.audit_log.length > 0) ? `
 </div>
 <div class="footer">
 <div class="footer-brand">Prepared by <strong>GetVouch Security</strong> &nbsp;|&nbsp; getvouch.net</div>
-<div class="footer-note">GetVouch v1.5.9 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
+<div class="footer-note">GetVouch v1.6.0 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
 </div>
 </div>
 <script>
@@ -3263,7 +3295,7 @@ var demoLines = [
   { text: 'Cloning repository...', cls: 'term-dim' },
   { text: '✓ Cloned in 1.2s — 47 files', cls: 'term-ok' },
   { text: '', cls: 'term-empty' },
-  { text: 'Scanning 23 security checks...', cls: 'term-dim' },
+  { text: 'Scanning 24 security checks...', cls: 'term-dim' },
   { text: '[████████████████████] 100%', cls: 'term-bar' },
   { text: '', cls: 'term-empty' },
   { text: '✓ Secrets scan complete', cls: 'term-ok' },

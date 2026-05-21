@@ -101,6 +101,122 @@ def _rel(path, base):
         return path
 
 
+def check_supply_chain_attacks(repo_files: dict) -> list:
+    """
+    Scans package.json, package-lock.json, and yarn.lock for known-compromised
+    package versions from major 2025-2026 npm supply chain attacks.
+    """
+    from .supply_chain_iocs import is_compromised, THREAT_INTEL_SOURCES
+
+    findings = []
+
+    # 1. package.json (direct dependencies)
+    package_json = repo_files.get("package.json")
+    if package_json:
+        try:
+            data = json.loads(package_json)
+            for section in ("dependencies", "devDependencies", "peerDependencies"):
+                deps = data.get(section, {})
+                for pkg_name, version_spec in deps.items():
+                    clean_version = re.sub(r"^[\^~>=<\s]+", "", str(version_spec))
+                    ioc = is_compromised(pkg_name, clean_version)
+                    if ioc:
+                        findings.append({
+                            "type": f"Known-compromised package: {pkg_name}@{clean_version}",
+                            "file": f"package.json → {section}",
+                            "line": "-",
+                            "snippet": f"campaign: {ioc['campaign']} | safe: {ioc['safe_version']}",
+                            "fix_prompt": _supply_chain_fix_prompt(pkg_name, clean_version, ioc, THREAT_INTEL_SOURCES),
+                        })
+        except (json.JSONDecodeError, KeyError, TypeError):
+            pass
+
+    # 2. package-lock.json (transitive deps — more thorough)
+    lock_file = repo_files.get("package-lock.json")
+    if lock_file:
+        try:
+            data = json.loads(lock_file)
+            packages = data.get("packages") or data.get("dependencies") or {}
+            for pkg_path, pkg_data in packages.items():
+                if pkg_path == "":
+                    continue
+                name = pkg_path.split("node_modules/")[-1]
+                version = pkg_data.get("version", "")
+                if not version:
+                    continue
+                ioc = is_compromised(name, version)
+                if ioc:
+                    findings.append({
+                        "type": f"Known-compromised package in lockfile: {name}@{version}",
+                        "file": "package-lock.json",
+                        "line": "-",
+                        "snippet": f"campaign: {ioc['campaign']} | safe: {ioc['safe_version']}",
+                        "fix_prompt": _supply_chain_fix_prompt(name, version, ioc, THREAT_INTEL_SOURCES),
+                    })
+        except (json.JSONDecodeError, KeyError, TypeError):
+            pass
+
+    # 3. yarn.lock
+    yarn_lock = repo_files.get("yarn.lock")
+    if yarn_lock:
+        yarn_entries = re.findall(
+            r'^([^@\s"]+)@[^\n]+:\n\s+version "([^"]+)"',
+            yarn_lock,
+            re.MULTILINE,
+        )
+        for name, version in yarn_entries:
+            ioc = is_compromised(name, version)
+            if ioc:
+                findings.append({
+                    "type": f"Known-compromised package in yarn.lock: {name}@{version}",
+                    "file": "yarn.lock",
+                    "line": "-",
+                    "snippet": f"campaign: {ioc['campaign']} | safe: {ioc['safe_version']}",
+                    "fix_prompt": _supply_chain_fix_prompt(name, version, ioc, THREAT_INTEL_SOURCES),
+                })
+
+    # Deduplicate (same pkg+version across multiple files)
+    seen = set()
+    unique = []
+    for f in findings:
+        key = (f["type"],)
+        if key not in seen:
+            seen.add(key)
+            unique.append(f)
+    return unique
+
+
+def _supply_chain_fix_prompt(pkg_name: str, version: str, ioc: dict, sources: list) -> str:
+    sources_text = "\n".join(sources)
+    return (
+        f"CRITICAL SECURITY FIX NEEDED — Your project uses {pkg_name}@{version}, "
+        f"which was compromised in the {ioc['campaign']} supply chain attack.\n\n"
+        f"What this means: {ioc['description']}\n\n"
+        f"If you have already run npm install with this version present, treat your "
+        f"environment as potentially compromised.\n\n"
+        f"Immediate actions:\n\n"
+        f"1. STOP — do not deploy any code that includes this dependency.\n\n"
+        f"2. Update the package:\n"
+        f"   npm install {pkg_name}@latest\n"
+        f"   (Safe version guidance: {ioc['safe_version']})\n\n"
+        f"3. Delete and regenerate your lockfile:\n"
+        f"   rm -rf package-lock.json node_modules && npm install\n"
+        f"   (For yarn: rm -rf yarn.lock node_modules && yarn install)\n\n"
+        f"4. If you ran npm install with this version at any point, ROTATE immediately:\n"
+        f"   - npm tokens: https://www.npmjs.com/settings/~/tokens\n"
+        f"   - GitHub Personal Access Tokens: https://github.com/settings/tokens\n"
+        f"   - AWS IAM access keys\n"
+        f"   - GCP service account keys\n"
+        f"   - All .env API keys\n"
+        f"   - SSH keys used for git operations\n\n"
+        f"5. Audit git history for suspicious commits or repos you don't recognise.\n\n"
+        f"6. Check CI/CD logs for unexpected outbound network traffic.\n\n"
+        f"Reference sources:\n{sources_text}\n\n"
+        f"After remediation: re-run GetVouch to confirm the compromised version is gone. "
+        f"For real-time supply chain monitoring, consider Socket or Snyk Open Source."
+    )
+
+
 def scan_directory(target_dir: str) -> dict:
     """
     Scan *target_dir* for security issues.
@@ -118,6 +234,7 @@ def scan_directory(target_dir: str) -> dict:
     findings: dict[str, list] = {
         "secrets": [], "auth": [], "sql": [], "cors": [],
         "env": [], "dependencies": [], "validation": [], "idor": [],
+        "supply_chain": [],
     }
     files_scanned = 0
 
@@ -147,12 +264,18 @@ def scan_directory(target_dir: str) -> dict:
                 "snippet": "No .gitignore file found",
             })
 
-    # ── package.json dependency check ────────────────────────────────
-    pkg_path = os.path.join(target_dir, "package.json")
+    # ── package.json dependency check + supply chain IOC scan ────────
+    pkg_path      = os.path.join(target_dir, "package.json")
+    lock_path     = os.path.join(target_dir, "package-lock.json")
+    yarn_lock_path = os.path.join(target_dir, "yarn.lock")
+
+    repo_files: dict[str, str] = {}
     if os.path.exists(pkg_path):
         try:
             with open(pkg_path, "r", encoding="utf-8") as pf:
-                pkg = json.load(pf)
+                raw = pf.read()
+            repo_files["package.json"] = raw
+            pkg = json.loads(raw)
             all_deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
             for pkg_name, min_ver in KNOWN_OLD_DEPS.items():
                 if pkg_name in all_deps:
@@ -166,6 +289,23 @@ def scan_directory(target_dir: str) -> dict:
                         })
         except Exception:
             pass
+
+    if os.path.exists(lock_path):
+        try:
+            with open(lock_path, "r", encoding="utf-8") as lf:
+                repo_files["package-lock.json"] = lf.read()
+        except Exception:
+            pass
+
+    if os.path.exists(yarn_lock_path):
+        try:
+            with open(yarn_lock_path, "r", encoding="utf-8") as yf:
+                repo_files["yarn.lock"] = yf.read()
+        except Exception:
+            pass
+
+    if repo_files:
+        findings["supply_chain"] = check_supply_chain_attacks(repo_files)
 
     # ── File walk ─────────────────────────────────────────────────────
     for root, dirs, files in os.walk(target_dir):
@@ -252,7 +392,8 @@ def scan_directory(target_dir: str) -> dict:
                 - len(findings["env"])          * 20
                 - len(findings["dependencies"]) * 5
                 - len(findings["validation"])   * 10
-                - len(findings["idor"])         * 15)
+                - len(findings["idor"])         * 15
+                - len(findings["supply_chain"]) * 25)
 
     if score == 100:
         risk_level, rating = "LOW",      "CLEAN — No issues detected"
@@ -266,10 +407,12 @@ def scan_directory(target_dir: str) -> dict:
     totals = {k: len(v) for k, v in findings.items()}
     totals["total"] = sum(totals.values())
 
-    # Attach AI fix prompts to every finding
+    # Attach AI fix prompts to every finding (supply_chain already has custom prompts)
     try:
         from getvouch.fix_prompts import generate_fix_prompt
         for category, finding_list in findings.items():
+            if category == "supply_chain":
+                continue
             for finding in finding_list:
                 finding["fix_prompt"] = generate_fix_prompt(finding, category)
     except Exception:

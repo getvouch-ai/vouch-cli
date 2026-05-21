@@ -23,7 +23,7 @@ from getvouch.scanner import scan_directory
 from getvouch.url_scanner import scan_url
 
 # ── App ───────────────────────────────────────────────────────────────
-app = FastAPI(title="GetVouch API", version="1.5.9")
+app = FastAPI(title="GetVouch API", version="1.6.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -66,7 +66,7 @@ def index():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "1.5.9"}
+    return {"status": "ok", "version": "1.6.0"}
 
 
 @app.post("/api/scan")

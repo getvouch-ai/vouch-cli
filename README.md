@@ -35,7 +35,7 @@ getvouch scan https://github.com/your-org/your-repo
 
 ## What we scan
 
-### GitHub repository scanning (9 checks)
+### GitHub repository scanning (10 checks)
 1. Exposed Secrets (25 key types)
 2. Client-Side Authentication
 3. SQL Injection Patterns
@@ -45,6 +45,7 @@ getvouch scan https://github.com/your-org/your-repo
 7. Insecure Direct Object References
 8. Dependency Issues
 9. Outdated Packages
+10. **Supply Chain Attack Detection** (v1.6.0) — checks package.json, package-lock.json, and yarn.lock against a static IOC list of packages compromised in major 2025–2026 npm supply chain attacks
 
 ### Live URL scanning (14 checks)
 1. Security Headers (CSP, X-Frame-Options, HSTS, etc.)
@@ -61,6 +62,25 @@ getvouch scan https://github.com/your-org/your-repo
 12. Rate Limit Detection on Auth Endpoints
 13. WebSocket Security
 14. **Supabase Service Role Key Exposure** (CRITICAL) — Detects if the service_role JWT is present in client-side bundles. This key bypasses all RLS — finding it in a client bundle is the most severe finding GetVouch produces.
+
+## Supply chain attack detection
+
+GetVouch v1.6.0 adds static IOC matching against packages compromised in the major 2025–2026 npm supply chain attacks:
+
+| Campaign | Date | Packages | Payload |
+|---|---|---|---|
+| qix / chalk phish | Sept 2025 | chalk, debug, and chalk-ecosystem packages | Crypto wallet hijacker |
+| s1ngularity / Nx | Aug 2025 | nx, @nx/* | Credential exfiltration |
+| Shai-Hulud worm | Sept 2025 | 500+ packages | Self-replicating credential theft |
+| Mini Shai-Hulud | Apr 2026 | 170+ packages (npm + PyPI) | Pre-install malware, axios compromised |
+
+**Scope:** This is a static check — we match exact versions in your dependency files against a published list of known-compromised versions. We do **not** perform real-time malware analysis or catch new attacks automatically.
+
+**Update cadence:** The IOC list (`getvouch/supply_chain_iocs.py`) is updated weekly as new public advisories are published.
+
+**For comprehensive real-time supply chain security,** we recommend [Socket](https://socket.dev) or [Snyk Open Source](https://snyk.io). They run continuous threat research operations and catch attacks within hours of disclosure. GetVouch is the quick free check; they're the full-time operation.
+
+**Sources:** CISA, Unit42 (Palo Alto Networks), Socket, StepSecurity, Sonatype, Microsoft Security Blog.
 
 ## Architecture
 
