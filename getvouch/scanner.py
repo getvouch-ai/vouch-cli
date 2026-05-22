@@ -304,8 +304,39 @@ def scan_directory(target_dir: str) -> dict:
         except Exception:
             pass
 
-    if repo_files:
-        findings["supply_chain"] = check_supply_chain_attacks(repo_files)
+    from .supply_chain_iocs import LAST_UPDATED
+    supply_chain_audit: list = []
+
+    if not repo_files:
+        supply_chain_audit.append({
+            "phase": "supply_chain",
+            "action": "Scanning for package management files",
+            "result": "skipped",
+            "detail": "No package.json, package-lock.json, or yarn.lock found — skipping supply chain check",
+        })
+    else:
+        supply_chain_audit.append({
+            "phase": "supply_chain",
+            "action": "Scanning dependencies against known-compromised package IOCs",
+            "result": "found",
+            "detail": "Checking against 5 active campaigns: qix_phish_2025, shai_hulud_2025, s1ngularity_2025, mini_shai_hulud_2026, and individual compromises",
+        })
+        sc_findings = check_supply_chain_attacks(repo_files)
+        findings["supply_chain"] = sc_findings
+        if sc_findings:
+            supply_chain_audit.append({
+                "phase": "supply_chain",
+                "action": "Detected compromised packages",
+                "result": "bypassed",
+                "detail": f"Found {len(sc_findings)} package(s) matching known compromise campaigns",
+            })
+        else:
+            supply_chain_audit.append({
+                "phase": "supply_chain",
+                "action": "Verified dependencies against known compromise list",
+                "result": "blocked",
+                "detail": f"No matches found. Note: this is a static check against published IOCs (last updated {LAST_UPDATED}). For real-time supply chain monitoring, use Socket or Snyk.",
+            })
 
     # ── File walk ─────────────────────────────────────────────────────
     for root, dirs, files in os.walk(target_dir):
@@ -419,10 +450,11 @@ def scan_directory(target_dir: str) -> dict:
         pass
 
     return {
-        "findings":     findings,
-        "score":        score,
-        "risk_level":   risk_level,
-        "rating":       rating,
+        "findings":      findings,
+        "score":         score,
+        "risk_level":    risk_level,
+        "rating":        rating,
         "files_scanned": files_scanned,
-        "totals":       totals,
+        "totals":        totals,
+        "audit_log":     supply_chain_audit,
     }
