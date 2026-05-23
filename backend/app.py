@@ -79,7 +79,8 @@ def scan_repo(req: ScanRequest):
     Body:   { "repo_url": "https://github.com/owner/repo" }
          or { "repo_url": "https://yourapp.vercel.app" }
     """
-    url = req.repo_url.strip().rstrip("/")
+    from getvouch.url_scanner import normalize_input_url
+    url = normalize_input_url(req.repo_url).rstrip("/")
 
     # ── Route: live URL scan ──────────────────────────────────────────
     if _URL_RE.match(url) and not _GITHUB_RE.match(url):
