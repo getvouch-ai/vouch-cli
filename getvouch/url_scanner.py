@@ -932,6 +932,16 @@ def check_websocket(url: str, resp) -> list:
 
 
 # ── Orchestrator ──────────────────────────────────────────────────────
+def normalize_input_url(submitted: str) -> str:
+    """Prepend https:// to bare domains so the scanner always gets a valid URL."""
+    url = submitted.strip()
+    if url.startswith('github.com/'):
+        return 'https://' + url
+    if not (url.startswith('http://') or url.startswith('https://')):
+        return 'https://' + url
+    return url
+
+
 def scan_url(target_url: str) -> dict:
     """
     Run all 8 URL security checks against target_url.
@@ -945,6 +955,7 @@ def scan_url(target_url: str) -> dict:
         "websocket": [], "rate_limit": [],
     }
 
+    target_url = normalize_input_url(target_url)
     # Normalize scheme: always test https:// first to avoid false "No HTTPS" findings
     canonical_url, no_https_finding = normalize_and_test_https(target_url)
     if no_https_finding:
