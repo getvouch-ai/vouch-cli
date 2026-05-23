@@ -9,6 +9,7 @@ import base64
 import json as _json
 import datetime
 import time
+import secrets
 import threading
 import concurrent.futures
 from urllib.parse import urlparse, urljoin
@@ -693,22 +694,121 @@ def check_cors(url: str, resp) -> list:
     return findings
 
 
-# ── Check 8: Exposed Admin / Debug Paths ─────────────────────────────
-def check_admin_paths(url: str) -> list:
-    """Probe common admin and debug endpoints; flag HTTP 200 non-SPA responses."""
+# ── Admin-path content markers — only flag if body contains these ─────
+_ADMIN_BODY_MARKERS = [
+    b"phpmyadmin", b"wp-login", b"wordpress", b"swagger-ui", b"swagger ui",
+    b"actuator", b"graphiql", b"joomla", b"spring boot", b"admin login",
+    b"login required", b'name="password"', b"name='password'",
+]
+_ADMIN_JSON_MARKERS = [
+    b"status", b"swagger", b"openapi", b"_links",
+    b"managementPort", b"activeProfiles",
+]
+
+
+def check_admin_paths(url: str, audit_log: list = None) -> list:
+    """
+    Probe common admin and debug endpoints using baseline-probe comparison
+    to eliminate SPA-fallback false positives (Vite/React/Lovable apps).
+    """
     parsed = urlparse(url)
     origin = f"{parsed.scheme}://{parsed.netloc}"
     findings = []
+
+    # ── 1. Baseline probe against a guaranteed-nonexistent path ──────
+    probe_path = f"/__getvouch_probe_{secrets.token_hex(8)}"
+    baseline_resp, _ = safe_fetch(origin + probe_path, timeout=5)
+
+    if baseline_resp is not None:
+        bl_status  = baseline_resp.status_code
+        bl_ct      = baseline_resp.headers.get("content-type", "").lower()
+        bl_body    = baseline_resp.content[:8000]
+        bl_len     = len(baseline_resp.content)
+        bl_head200 = bl_body[:200]
+
+        # Detect SPA fallback site: baseline returns 200 HTML with SPA markers
+        is_spa_fallback_site = (
+            bl_status == 200
+            and "html" in bl_ct
+            and any(fp in bl_body for fp in _SPA_FINGERPRINTS)
+        )
+        detail = (
+            f"Baseline probe: {bl_status} {bl_ct or 'unknown'} "
+            f"{bl_len} bytes"
+            + (" — SPA fallback detected, using content validation" if is_spa_fallback_site else "")
+        )
+    else:
+        bl_status  = None
+        bl_ct      = ""
+        bl_body    = b""
+        bl_len     = 0
+        bl_head200 = b""
+        is_spa_fallback_site = False
+        detail = "Baseline probe: unreachable"
+
+    if audit_log is not None:
+        audit_log.append({
+            "phase": "admin_paths",
+            "action": "Baseline probe for SPA-fallback detection",
+            "result": "found",
+            "detail": detail,
+        })
+
+    # ── 2. Probe each admin path ──────────────────────────────────────
     for path in _ADMIN_PATHS:
         resp, _ = safe_fetch(origin + path, timeout=4)
         if resp is None or resp.status_code != 200:
             continue
+
+        body = resp.content[:8000]
+        body_lower = body.lower()
+        ct   = resp.headers.get("content-type", "").lower()
+        resp_len  = len(resp.content)
+        resp_head = body[:200]
+
+        # ── Skip conditions (in order) ─────────────────────────────
+
+        # a) Matches baseline by status + length (±10%) + first 200 chars
+        if bl_status == 200:
+            len_ok = bl_len == 0 or abs(resp_len - bl_len) / max(bl_len, 1) <= 0.10
+            if len_ok and resp_head == bl_head200:
+                continue
+
+        # b) Definitive Vite SPA marker in the response itself
+        if (
+            (b'id="root"' in body or b"id='root'" in body or
+             b'id="app"'  in body or b"id='app'"  in body)
+            and b'<script type="module" src="/assets/' in body
+        ):
+            continue
+
+        # c) Site is a known SPA fallback + this response is HTML 200
+        if is_spa_fallback_site and "html" in ct and resp.status_code == 200:
+            continue
+
+        # d) Generic SPA fingerprint check (existing helper)
         if is_spa_fallback(resp):
             continue
+
+        # ── Flag conditions ────────────────────────────────────────
+
+        # JSON paths (actuator, api-docs, openapi) — require JSON content-type
+        # and expected structural markers
+        if any(p in path for p in ("/actuator", "/api-docs", "/openapi")):
+            if "json" not in ct:
+                continue
+            if not any(m in body_lower for m in _ADMIN_JSON_MARKERS):
+                continue
+        else:
+            # HTML/other paths — require at least one admin-panel body marker
+            if not any(m in body_lower for m in _ADMIN_BODY_MARKERS):
+                continue
+
         findings.append(_f(
             "Exposed Admin or Debug Path", origin + path,
             f"HTTP 200 — {path} accessible without authentication",
         ))
+
     return findings
 
 
@@ -971,7 +1071,7 @@ def scan_url(target_url: str) -> dict:
     findings["supabase"]        = sb_findings
     findings["cors"]            = check_cors(canonical_url, resp)
     findings["exposed_files"]   = check_exposed_files(canonical_url)
-    findings["admin_paths"]     = check_admin_paths(canonical_url)
+    findings["admin_paths"]     = check_admin_paths(canonical_url, audit_log=audit_log)
     findings["sri"]             = check_sri(canonical_url, resp)
     findings["mixed_content"]   = check_mixed_content(canonical_url, resp)
     findings["open_redirect"]   = check_open_redirect(canonical_url, resp)
