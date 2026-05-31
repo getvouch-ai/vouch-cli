@@ -415,25 +415,38 @@ def scan_directory(target_dir: str) -> dict:
                 pass
 
     # ── Score ─────────────────────────────────────────────────────────
-    score = max(0, 100
-                - len(findings["secrets"])      * 20
-                - len(findings["auth"])         * 20
-                - len(findings["sql"])          * 15
-                - len(findings["cors"])         * 10
-                - len(findings["env"])          * 20
-                - len(findings["dependencies"]) * 5
-                - len(findings["validation"])   * 10
-                - len(findings["idor"])         * 15
-                - len(findings["supply_chain"]) * 25)
+    _SC_SEVERITY = {
+        "secrets":      "CRITICAL",
+        "supply_chain": "CRITICAL",
+        "auth":         "HIGH",
+        "sql":          "HIGH",
+        "cors":         "HIGH",
+        "idor":         "HIGH",
+        "env":          "HIGH",
+        "validation":   "MEDIUM",
+        "dependencies": "LOW",
+    }
+    _weights = {"CRITICAL": 30, "HIGH": 15, "MEDIUM": 4, "LOW": 1}
+    score = max(0, 100 - sum(
+        len(v) * _weights.get(_SC_SEVERITY.get(k, "LOW"), 1)
+        for k, v in findings.items()
+    ))
 
-    if score == 100:
-        risk_level, rating = "LOW",      "CLEAN — No issues detected"
-    elif score >= 75:
-        risk_level, rating = "MODERATE", "MODERATE RISK — Remediation recommended"
-    elif score >= 50:
-        risk_level, rating = "HIGH",     "HIGH RISK — Fix before shipping"
-    else:
+    crit_count = sum(len(v) for k, v in findings.items() if _SC_SEVERITY.get(k) == "CRITICAL")
+    high_count = sum(len(v) for k, v in findings.items() if _SC_SEVERITY.get(k) == "HIGH")
+    med_count  = sum(len(v) for k, v in findings.items() if _SC_SEVERITY.get(k) == "MEDIUM")
+    low_count  = sum(len(v) for k, v in findings.items() if _SC_SEVERITY.get(k) == "LOW")
+
+    if crit_count >= 1:
         risk_level, rating = "CRITICAL", "CRITICAL — Do not ship"
+    elif high_count >= 3:
+        risk_level, rating = "HIGH",     "HIGH RISK — Fix before shipping"
+    elif high_count >= 1 or med_count >= 8:
+        risk_level, rating = "MODERATE", "MODERATE RISK — Remediation recommended"
+    elif med_count >= 1 or low_count >= 1:
+        risk_level, rating = "LOW",      "LOW RISK — Minor issues to address"
+    else:
+        risk_level, rating = "LOW",      "CLEAN — No issues detected"
 
     totals = {k: len(v) for k, v in findings.items()}
     totals["total"] = sum(totals.values())

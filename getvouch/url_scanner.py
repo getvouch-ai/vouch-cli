@@ -1,5 +1,5 @@
 """
-GetVouch URL Scanner v1.5.9 — live URL security checks.
+GetVouch URL Scanner v1.6.1 — live URL security checks.
 Read-only, ethical, no fuzzing, no payload injection.
 """
 import re
@@ -68,8 +68,34 @@ _CDN_ORIGINS = frozenset({
 
 _INFRA_HOSTS = frozenset({
     "googletagmanager.com", "fonts.googleapis.com", "fonts.gstatic.com",
-    "www.google-analytics.com", "connect.facebook.net",
+    "www.google-analytics.com", "google-analytics.com", "connect.facebook.net",
+    "cloudflareinsights.com", "vercel.live", "vercel-scripts.com",
+    "plausible.io", "cdn.affonso.io", "snap.licdn.com",
+    "analytics.tiktok.com", "js.stripe.com",
 })
+
+_CAT_SEVERITY = {
+    "secrets":         "CRITICAL",
+    "supabase":        "CRITICAL",
+    "supply_chain":    "CRITICAL",
+    "exposed_files":   "HIGH",
+    "ssl":             "HIGH",
+    "open_redirect":   "HIGH",
+    "cors":            "HIGH",
+    "admin_paths":     "HIGH",
+    "auth":            "HIGH",
+    "sql":             "HIGH",
+    "idor":            "HIGH",
+    "env":             "HIGH",
+    "websocket":       "MEDIUM",
+    "headers":         "MEDIUM",
+    "rate_limit":      "MEDIUM",
+    "mixed_content":   "MEDIUM",
+    "validation":      "MEDIUM",
+    "info_disclosure": "LOW",
+    "sri":             "LOW",
+    "dependencies":    "LOW",
+}
 
 _WS_THIRD_PARTY = frozenset({
     "pusher.com", "ably.io", "ably.com", "liveblocks.io", "getstream.io",
@@ -104,6 +130,14 @@ _API_PATH_RE     = re.compile(r'["\'](/api/[^"\'?\s]{1,60})["\']')
 _VERSION_RE      = re.compile(r'\d+\.\d+\.?\d*')
 _TEMPLATE_LIT_RE = re.compile(r'\$\{[^}]+\}')
 _PROC_ENV_RE     = re.compile(r'^process\.env\.\w+$')
+_SECRET_VAR_RE   = re.compile(
+    r'(?:key|secret|token|password|passwd|pwd|api[_\-]?key|auth[_\-]?key|private[_\-]?key)',
+    re.I
+)
+_JS_MINIFIED_RE  = re.compile(
+    r'(?:function\s*\w*\s*\(|=>\s*\{|\.prototype\b|\.length\b|parseInt|parseFloat|\.push\()',
+    re.I
+)
 
 # SPA catch-all fingerprints — modern SPAs return HTTP 200 for every unknown path
 _SPA_FINGERPRINTS = [
@@ -163,7 +197,7 @@ def is_spa_fallback(resp) -> bool:
 
 
 def _is_false_positive_secret(label: str, line: str) -> bool:
-    """True if this Generic Secret match is likely a template-literal placeholder."""
+    """True if this Generic Secret match is a false positive (template, env var, or minified JS)."""
     if label != "Generic Secret":
         return False
     m = re.search(r'[=:]\s*[\'"]([^\'"]*)[\'"]', line)
@@ -176,7 +210,33 @@ def _is_false_positive_secret(label: str, line: str) -> bool:
         return True
     if _PROC_ENV_RE.match(val.strip()):
         return True
+    # Only flag if the variable name looks like a secret holder
+    prefix = line[max(0, m.start() - 60):m.start()]
+    if not _SECRET_VAR_RE.search(prefix):
+        return True
+    # Skip if JS syntax tokens appear near the match (minified code)
+    context = line[max(0, m.start() - 30):min(len(line), m.end() + 30)]
+    if _JS_MINIFIED_RE.search(context):
+        return True
     return False
+
+
+def _registrable_domain(host: str) -> str:
+    """Strip www. prefix and port for same-origin comparison."""
+    h = host.lower().split(":")[0]
+    return h[4:] if h.startswith("www.") else h
+
+
+def _is_login_page(resp) -> bool:
+    """True if the response is a login/auth page, not an exposed admin panel."""
+    final_url = str(resp.url).lower()
+    if any(s in final_url for s in _LOGIN_URL_SIGNALS):
+        return True
+    body = resp.content[:8000].lower()
+    if any(m in body for m in _LOGIN_BODY_MARKERS):
+        return True
+    soft_hits = sum(1 for s in _LOGIN_BODY_SOFT if s in body)
+    return soft_hits >= 2
 
 
 # ── Check 1: Security Headers ─────────────────────────────────────────
@@ -694,6 +754,10 @@ def check_cors(url: str, resp) -> list:
     return findings
 
 
+_LOGIN_URL_SIGNALS  = ("/login", "/signin", "/sign-in", "/auth")
+_LOGIN_BODY_MARKERS = [b'type="password"', b"type='password'"]
+_LOGIN_BODY_SOFT    = [b"forgot password", b"sign in", b"log in", b"username", b"email address"]
+
 # ── Admin-path content markers — only flag if body contains these ─────
 _ADMIN_BODY_MARKERS = [
     b"phpmyadmin", b"wp-login", b"wordpress", b"swagger-ui", b"swagger ui",
@@ -790,6 +854,10 @@ def check_admin_paths(url: str, audit_log: list = None) -> list:
         if is_spa_fallback(resp):
             continue
 
+        # e) Login/auth redirect — expected to require credentials, not an exposed panel
+        if _is_login_page(resp):
+            continue
+
         # ── Flag conditions ────────────────────────────────────────
 
         # JSON paths (actuator, api-docs, openapi) — require JSON content-type
@@ -818,7 +886,7 @@ def check_sri(url: str, resp) -> list:
     if resp is None:
         return []
     p = urlparse(url)
-    page_origin = p.netloc
+    page_reg = _registrable_domain(p.netloc)
     findings = []
     seen: set = set()
     for tag_m in re.finditer(r'<(script|link)\s[^>]*>', resp.text, re.I | re.S):
@@ -836,7 +904,7 @@ def check_sri(url: str, resp) -> list:
         if not res_url.startswith('http'):
             continue
         rp = urlparse(res_url)
-        if rp.netloc == page_origin or any(t in rp.netloc for t in _INFRA_HOSTS):
+        if _registrable_domain(rp.netloc) == page_reg or any(t in rp.netloc for t in _INFRA_HOSTS):
             continue
         if res_url in seen or re.search(r'\bintegrity=', tag, re.I):
             continue
@@ -1081,29 +1149,27 @@ def scan_url(target_url: str) -> dict:
     urls_checked = (1 + len(_SENSITIVE_PATHS) + len(_ADMIN_PATHS)
                     + len(_AUTH_ENDPOINTS) + len(findings["cors"]))
 
-    score = max(0, 100
-                - len(findings["secrets"])        * 20
-                - len(findings["supabase"])        * 25
-                - len(findings["exposed_files"])   * 20
-                - len(findings["ssl"])             * 15
-                - len(findings["open_redirect"])   * 15
-                - len(findings["cors"])            * 10
-                - len(findings["admin_paths"])     * 10
-                - len(findings["websocket"])       * 10
-                - len(findings["headers"])         * 8
-                - len(findings["rate_limit"])      * 8
-                - len(findings["mixed_content"])   * 8
-                - len(findings["info_disclosure"]) * 5
-                - len(findings["sri"])             * 5)
+    _weights = {"CRITICAL": 30, "HIGH": 15, "MEDIUM": 4, "LOW": 1}
+    score = max(0, 100 - sum(
+        len(v) * _weights.get(_CAT_SEVERITY.get(k, "LOW"), 1)
+        for k, v in findings.items()
+    ))
 
-    if score == 100:
-        risk_level, rating = "LOW",      "CLEAN — No issues detected"
-    elif score >= 75:
-        risk_level, rating = "MODERATE", "MODERATE RISK — Remediation recommended"
-    elif score >= 50:
-        risk_level, rating = "HIGH",     "HIGH RISK — Fix before shipping"
-    else:
+    crit_count = sum(len(v) for k, v in findings.items() if _CAT_SEVERITY.get(k) == "CRITICAL")
+    high_count = sum(len(v) for k, v in findings.items() if _CAT_SEVERITY.get(k) == "HIGH")
+    med_count  = sum(len(v) for k, v in findings.items() if _CAT_SEVERITY.get(k) == "MEDIUM")
+    low_count  = sum(len(v) for k, v in findings.items() if _CAT_SEVERITY.get(k) == "LOW")
+
+    if crit_count >= 1:
         risk_level, rating = "CRITICAL", "CRITICAL — Do not ship"
+    elif high_count >= 3:
+        risk_level, rating = "HIGH",     "HIGH RISK — Fix before shipping"
+    elif high_count >= 1 or med_count >= 8:
+        risk_level, rating = "MODERATE", "MODERATE RISK — Remediation recommended"
+    elif med_count >= 1 or low_count >= 1:
+        risk_level, rating = "LOW",      "LOW RISK — Minor issues to address"
+    else:
+        risk_level, rating = "LOW",      "CLEAN — No issues detected"
 
     totals = {k: len(v) for k, v in findings.items()}
     totals["total"] = sum(totals.values())

@@ -1449,7 +1449,7 @@ footer{
         <!-- Status pill -->
         <div class="status-pill">
           <span class="status-dot"></span>
-          <span class="status-text">v1.6.0.2 &middot; Now accepts bare URLs</span>
+          <span class="status-text">v1.6.1 &middot; More accurate findings</span>
         </div>
 
         <!-- Headline -->
@@ -2205,7 +2205,7 @@ footer{
           <div class="doc-header-top">
             <div>
               <div class="doc-logo">Get<span>Vouch</span></div>
-              <div class="doc-version">v1.6.0.2 &#8212; Web Scanner</div>
+              <div class="doc-version">v1.6.1 &#8212; Web Scanner</div>
             </div>
             <div class="doc-confidential">Confidential</div>
           </div>
@@ -2527,7 +2527,7 @@ footer{
       <div>
         <div class="footer-logo">Get<span class="logo-gradient">Vouch</span></div>
         <p class="footer-tagline">Security audit for AI-generated and human-written code. Free. No signup.</p>
-        <span class="footer-version-pill">v1.6.0.2</span>
+        <span class="footer-version-pill">v1.6.1</span>
       </div>
 
       <!-- Product column -->
@@ -2987,13 +2987,33 @@ function generateReportHtml(data) {
   };
   const [scoreColor, riskBg, riskBorder] = colorMap[data.risk_level] || colorMap.HIGH;
 
-  const summaryMap = {
-    LOW:      'No critical security vulnerabilities were detected. The application demonstrates adequate security hygiene. Continued monitoring is recommended as the codebase evolves.',
-    MODERATE: 'Minor security concerns were identified requiring attention before production deployment. No critical vulnerabilities were found, however the issues identified represent potential entry points that should be remediated promptly.',
-    HIGH:     'Significant security vulnerabilities have been identified. These issues present material risk including potential data exposure, unauthorized access, and financial liability. Immediate remediation is strongly recommended prior to any production deployment or user onboarding.',
-    CRITICAL: 'Critical security vulnerabilities pose an immediate and severe risk to the organization. Exposed credentials, authentication bypasses, or injection vulnerabilities were detected that could result in complete system compromise, data breach, or significant financial loss. This application must not be deployed until all critical findings are resolved.',
-  };
-  const execSummary = summaryMap[data.risk_level] || summaryMap.HIGH;
+  // Build exec summary from actual findings — never claim a finding type was detected unless it has results
+  const _cc = c => (catFindings[c] || []).length;
+  let execSummary;
+  if (data.risk_level === 'CRITICAL') {
+    const detected = [];
+    if (_cc('secrets') > 0)        detected.push('exposed credentials');
+    if (_cc('supabase') > 0)       detected.push('Supabase RLS bypass');
+    if (_cc('supply_chain') > 0)   detected.push('compromised supply chain packages');
+    if (_cc('auth') > 0)           detected.push('authentication bypass patterns');
+    if (_cc('sql') > 0)            detected.push('SQL injection vulnerabilities');
+    if (_cc('exposed_files') > 0)  detected.push('exposed sensitive files');
+    if (_cc('open_redirect') > 0)  detected.push('open redirect vulnerabilities');
+    const what = detected.length > 0 ? detected.join(', ') : 'critical vulnerabilities';
+    const verb = detected.length === 1 ? 'was' : 'were';
+    execSummary = 'Critical security vulnerabilities pose an immediate and severe risk. '
+      + (detected.length > 0 ? what.charAt(0).toUpperCase() + what.slice(1) + ' ' + verb + ' detected. ' : '')
+      + 'This application must not be deployed until all critical findings are resolved.';
+  } else if (data.risk_level === 'HIGH') {
+    execSummary = 'Significant security vulnerabilities were identified that present material risk including potential data exposure and unauthorized access. Immediate remediation is strongly recommended prior to production deployment.';
+  } else if (data.risk_level === 'MODERATE') {
+    execSummary = 'Minor security concerns were identified. None represent an immediate critical risk, however the issues identified represent potential entry points that should be remediated before production deployment.';
+  } else {
+    const totalFindings = (data.totals && data.totals.total) || 0;
+    execSummary = totalFindings === 0
+      ? 'No security vulnerabilities were detected. The application follows security best practices across all tested categories.'
+      : 'No critical security vulnerabilities were detected. Low-severity informational findings are noted below for review.';
+  }
 
   function esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -3137,7 +3157,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="page">
 <div class="cover">
 <div class="cover-top">
-<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.6.0.2 — Security Scanner</div></div>
+<div><div class="logo">Get<span>Vouch</span></div><div class="version">v1.6.1 — Security Scanner</div></div>
 <div class="confidential">Confidential</div>
 </div>
 <h1>Security Assessment Report</h1>
@@ -3155,7 +3175,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 <div class="section">
 <div class="section-label">01 — Executive Summary</div>
 <div class="exec-box"><p style="font-size:14px;color:#374151;line-height:1.7;">${execSummary}</p></div>
-<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.6.0.2 automated analysis, scanning ${data.files_scanned} files/URLs across 24 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, Supabase RLS live testing, exposed sensitive files, admin paths, security headers, subresource integrity, mixed content, open redirect, WebSocket security, rate limiting, and supply chain attack detection.</p>
+<p style="font-size:13px;color:#6b7280;line-height:1.7;">This assessment was performed using GetVouch v1.6.1 automated analysis, scanning ${data.files_scanned} files/URLs across 24 security checks including credential exposure, authentication vulnerabilities, injection risks, CORS misconfiguration, SSL/TLS, Supabase RLS live testing, exposed sensitive files, admin paths, security headers, subresource integrity, mixed content, open redirect, WebSocket security, rate limiting, and supply chain attack detection.</p>
 </div>
 <div class="section">
 <div class="section-label">02 — Risk Score</div>
@@ -3241,7 +3261,7 @@ ${(data.audit_log && data.audit_log.length > 0) ? `
 </div>
 <div class="section" style="background:#f9fafb;border-radius:8px;padding:22px;border:1px solid #e5e7eb;">
 <div class="section-label">${(data.audit_log && data.audit_log.length > 0) ? '07' : '06'} — Disclaimer</div>
-<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.6.0.2 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
+<p style="font-size:12px;color:#6b7280;line-height:1.8;">This report was generated by GetVouch v1.6.1 automated security analysis. It represents findings detected through pattern matching and heuristic analysis of source code files. This report does not constitute a comprehensive penetration test or security audit. GetVouch recommends all findings be reviewed by a qualified security professional prior to remediation. False positives may occur. GetVouch is not liable for decisions made based solely on this report.</p>
 </div>
 <div class="print-btn">
 <button onclick="window.print()">Save as PDF</button>
@@ -3250,7 +3270,7 @@ ${(data.audit_log && data.audit_log.length > 0) ? `
 </div>
 <div class="footer">
 <div class="footer-brand">Prepared by <strong>GetVouch Security</strong> &nbsp;|&nbsp; getvouch.net</div>
-<div class="footer-note">GetVouch v1.6.0.2 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
+<div class="footer-note">GetVouch v1.6.1 &nbsp;|&nbsp; Generated ${esc(dateFull)}<br>This document is confidential</div>
 </div>
 </div>
 <script>

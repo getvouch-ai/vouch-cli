@@ -45,7 +45,7 @@ getvouch scan https://github.com/your-org/your-repo
 7. Insecure Direct Object References
 8. Dependency Issues
 9. Outdated Packages
-10. **Supply Chain Attack Detection** (v1.6.0.2) — checks package.json, package-lock.json, and yarn.lock against a static IOC list of packages compromised in major 2025–2026 npm supply chain attacks
+10. **Supply Chain Attack Detection** (v1.6.1) — checks package.json, package-lock.json, and yarn.lock against a static IOC list of packages compromised in major 2025–2026 npm supply chain attacks
 
 ### Live URL scanning (14 checks)
 1. Security Headers (CSP, X-Frame-Options, HSTS, etc.)
@@ -65,7 +65,7 @@ getvouch scan https://github.com/your-org/your-repo
 
 ## Supply chain attack detection
 
-GetVouch v1.6.0.2 adds static IOC matching against packages compromised in the major 2025–2026 npm supply chain attacks:
+GetVouch v1.6.1 adds static IOC matching against packages compromised in the major 2025–2026 npm supply chain attacks:
 
 | Campaign | Date | Packages | Payload |
 |---|---|---|---|
