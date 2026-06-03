@@ -1,5 +1,5 @@
 """
-GetVouch URL Scanner v1.6.1 — live URL security checks.
+GetVouch URL Scanner v1.6.3 — live URL security checks.
 Read-only, ethical, no fuzzing, no payload injection.
 """
 import re

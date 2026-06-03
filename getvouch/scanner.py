@@ -7,8 +7,8 @@ import re
 import json
 
 SECRET_PATTERNS = {
-    "OpenAI API Key":            r"sk-[a-zA-Z0-9]{32,}",
-    "Anthropic API Key":         r"sk-ant-[a-zA-Z0-9\-]{32,}",
+    "OpenAI API Key":            r"sk-proj-[a-zA-Z0-9_-]{16,}|sk-svcacct-[a-zA-Z0-9_-]{16,}|sk-[a-zA-Z0-9]{32,}",
+    "Anthropic API Key":         r"sk-ant-[a-zA-Z0-9_-]{20,}",
     "Google API Key":            r"AIza[0-9A-Za-z\-_]{35}",
     "Firebase API Key":          r"AIzaSy[0-9A-Za-z\-_]{33}",
     "Firebase Service Account":  r'"type":\s*"service_account"',

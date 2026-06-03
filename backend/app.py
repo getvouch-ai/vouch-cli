@@ -66,7 +66,7 @@ def index():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "1.6.2"}
+    return {"status": "ok", "version": "1.6.3"}
 
 
 @app.post("/api/scan")
